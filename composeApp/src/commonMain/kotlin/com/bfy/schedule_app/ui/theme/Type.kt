@@ -6,28 +6,64 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 val BfyTypography = Typography(
-    // Dùng cho Tiêu đề lớn (Ví dụ: Lời chào ở Home, Giờ đếm ngược)
     displayLarge = TextStyle(
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
+        fontSize = 40.sp,
+        lineHeight = 46.sp,
+        letterSpacing = (-0.5).sp
+    ),
+    displayMedium = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 30.sp,
+        lineHeight = 36.sp,
         letterSpacing = 0.sp
     ),
-    // Dùng cho Tiêu đề vừa (Ví dụ: Tên Task, Tên Event)
+    headlineMedium = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
+        letterSpacing = 0.sp
+    ),
+    titleLarge = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.sp
+    ),
     titleMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        letterSpacing = 0.15.sp
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.1.sp
     ),
-    // Dùng cho Text nội dung bình thường
     bodyLarge = TextStyle(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 22.sp,
+        letterSpacing = 0.2.sp
     ),
-    // Dùng cho Text phụ, ghi chú nhỏ, hoặc chữ dưới Bottom Navigation
-    labelSmall = TextStyle(
+    bodyMedium = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.2.sp
+    ),
+    labelLarge = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.3.sp
+    ),
+    labelMedium = TextStyle(
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 16.sp,
+        letterSpacing = 0.3.sp
+    ),
+    labelSmall = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.3.sp
     )
 )
