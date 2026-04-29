@@ -1,0 +1,6 @@
+[build]
+target = "bun"
+entrypoints = ["src/bootstrap.ts"]
+
+[test]
+run = "bun test"

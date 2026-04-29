@@ -1,0 +1,10 @@
+export { default as authController } from "./AuthController";
+export { default as scheduleController } from "./ScheduleController";
+export { default as focusController } from "./FocusController";
+export { default as collaborationController } from "./CollaborationController";
+export { default as userController } from "./UserController";
+export { default as gamificationController } from "./GamificationController";
+export { default as notificationController } from "./NotificationController";
+export { default as reportController } from "./ReportController";
+export { default as settingsController } from "./SettingsController";
+export { default as adminController } from "./AdminController";
