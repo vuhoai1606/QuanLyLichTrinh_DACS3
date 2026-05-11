@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.screens.calendar.CalendarScreen
 import com.bfy.schedule_app.ui.screens.collaboration.CollaborationScreen
 import com.bfy.schedule_app.ui.screens.collaboration.GroupDetailScreen
+import com.bfy.schedule_app.ui.screens.createitem.CreateNewItemScreen
 import com.bfy.schedule_app.ui.screens.focusmode.FocusModeScreen
 import com.bfy.schedule_app.ui.screens.profile.ProfileScreen
 import com.bfy.schedule_app.ui.theme.*
@@ -39,6 +41,7 @@ enum class DashboardTab {
 fun HomeDashboardScreen() {
     var selectedTab by remember { mutableStateOf(DashboardTab.HOME) }
     var showGroupDetail by remember { mutableStateOf(false) }
+    var showCreateNewItem by remember { mutableStateOf(false) }
 
     if (showGroupDetail) {
         GroupDetailScreen(
@@ -56,7 +59,8 @@ fun HomeDashboardScreen() {
         bottomBar = {
             DashboardBottomNavBar(
                 selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
+                onTabSelected = { selectedTab = it },
+                onAddClick = { showCreateNewItem = true }
             )
         },
         backgroundColor = BackgroundColor
@@ -72,6 +76,10 @@ fun HomeDashboardScreen() {
                 DashboardTab.FOCUS -> FocusModeScreen()
                 DashboardTab.COLLAB -> CollaborationScreen(onGroupClick = { showGroupDetail = true })
                 DashboardTab.PROFILE -> ProfileScreen()
+            }
+
+            if (showCreateNewItem) {
+                CreateNewItemScreen(onDismiss = { showCreateNewItem = false })
             }
         }
     }
@@ -297,114 +305,137 @@ fun TimelineTodoItem(title: String, completed: Boolean) {
 @Composable
 private fun DashboardBottomNavBar(
     selectedTab: DashboardTab,
-    onTabSelected: (DashboardTab) -> Unit
+    onTabSelected: (DashboardTab) -> Unit,
+    onAddClick: () -> Unit
 ) {
     // This floating nav bar matches the Figma design overlapping the screen content
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .padding(bottom = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp), // Adjust padding to match bottom-[24px] px-[16px]
         contentAlignment = Alignment.BottomCenter
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Main NavBar background
             Row(
                 modifier = Modifier
                     .weight(1f)
+                    .height(66.dp) // Based on size of 48dp items inside 9dp paddings (approx)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(Color(0xE6282A2D))
+                    .background(Color(0xE6282A2D)) // backdrop-blur-[6px] bg-[rgba(40,42,45,0.9)] mapping
                     .border(1.dp, Color(0xFF333538), RoundedCornerShape(9999.dp))
-                    .padding(8.dp),
+                    .padding(9.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Home 
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
-                        .weight(1f)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(9999.dp))
-                        .background(if (selectedTab == DashboardTab.HOME) PrimaryColor else Color.Transparent)
+                        .background(if (selectedTab == DashboardTab.HOME) Color(0xFF59DBC7) else Color.Transparent)
                         .clickable { onTabSelected(DashboardTab.HOME) },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Home,
+                        Icons.Rounded.Home,
                         contentDescription = "Home",
-                        tint = if (selectedTab == DashboardTab.HOME) Color.Black else TextSecondary
+                        tint = if (selectedTab == DashboardTab.HOME) Color(0xFF003731) else Color(0xFFBBCAC5),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
+                
+                // Calendar
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
-                        .weight(1f)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(9999.dp))
-                        .background(if (selectedTab == DashboardTab.CALENDAR) PrimaryColor else Color.Transparent)
+                        .background(if (selectedTab == DashboardTab.CALENDAR) Color(0xFF59DBC7) else Color.Transparent)
                         .clickable { onTabSelected(DashboardTab.CALENDAR) },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.DateRange,
+                        Icons.Rounded.CalendarMonth,
                         contentDescription = "Calendar",
-                        tint = if (selectedTab == DashboardTab.CALENDAR) Color.Black else TextSecondary
+                        tint = if (selectedTab == DashboardTab.CALENDAR) Color(0xFF003731) else Color(0xFFBBCAC5),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
+                
+                // Focus
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
-                        .weight(1f)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(9999.dp))
-                        .background(if (selectedTab == DashboardTab.FOCUS) PrimaryColor else Color.Transparent)
+                        .background(if (selectedTab == DashboardTab.FOCUS) Color(0xFF59DBC7) else Color.Transparent)
                         .clickable { onTabSelected(DashboardTab.FOCUS) },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Star,
+                        Icons.Rounded.Timer,
                         contentDescription = "Focus",
-                        tint = if (selectedTab == DashboardTab.FOCUS) Color.Black else TextSecondary
+                        tint = if (selectedTab == DashboardTab.FOCUS) Color(0xFF003731) else Color(0xFFBBCAC5),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
+                
+                // Collab
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
-                        .weight(1f)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(9999.dp))
-                        .background(if (selectedTab == DashboardTab.COLLAB) PrimaryColor else Color.Transparent)
+                        .background(if (selectedTab == DashboardTab.COLLAB) Color(0xFF59DBC7) else Color.Transparent)
                         .clickable { onTabSelected(DashboardTab.COLLAB) },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Share,
+                        Icons.Rounded.People,
                         contentDescription = "Collab",
-                        tint = if (selectedTab == DashboardTab.COLLAB) Color.Black else TextSecondary
+                        tint = if (selectedTab == DashboardTab.COLLAB) Color(0xFF003731) else Color(0xFFBBCAC5),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
+                
+                // Profile
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
-                        .weight(1f)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(9999.dp))
-                        .background(if (selectedTab == DashboardTab.PROFILE) PrimaryColor else Color.Transparent)
+                        .background(if (selectedTab == DashboardTab.PROFILE) Color(0xFF59DBC7) else Color.Transparent)
                         .clickable { onTabSelected(DashboardTab.PROFILE) },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Person,
+                        Icons.Rounded.Person,
                         contentDescription = "Profile",
-                        tint = if (selectedTab == DashboardTab.PROFILE) Color.Black else TextSecondary
+                        tint = if (selectedTab == DashboardTab.PROFILE) Color(0xFF003731) else Color(0xFFBBCAC5),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            
+            // Add Button Spacer (padding removed from design and used flex)
+            Spacer(modifier = Modifier.width(8.dp)) // approx value for visual gap if not justified completely
+            
+            // Add Button (FAB adjacent)
             Box(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
                     .background(Color(0xE6282A2D))
                     .border(1.dp, Color(0xFF333538), CircleShape)
-                    .clickable { onTabSelected(DashboardTab.FOCUS) },
+                    .clickable { onAddClick() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
+                Icon(
+                    Icons.Rounded.Add, 
+                    contentDescription = "Add", 
+                    tint = Color(0xFFE2E2E6),
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
