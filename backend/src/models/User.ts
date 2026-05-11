@@ -1,10 +1,14 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, OneToMany, ManyToMany } from "typeorm";
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, OneToMany } from "typeorm";
 import { UserSettings } from "./UserSettings";
 import { Category } from "./Category";
 import { Schedule } from "./Schedule";
 import { Group } from "./Group";
 import { GroupMember } from "./GroupMember";
 import { FocusSession } from "./FocusSession";
+import { Notification } from "./Notification";
+import { UserBadge } from "./UserBadge";
+import { FCMToken } from "./FCMToken";
+import { TaskCollaborator } from "./TaskCollaborator";
 
 @Entity("users")
 export class User {
@@ -14,7 +18,10 @@ export class User {
   @Column({ type: "varchar", unique: true })
   email: string;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", unique: true, nullable: true })
+  google_id: string;
+
+  @Column({ type: "varchar", nullable: true })
   password_hash: string;
 
   @Column({ type: "varchar", length: 100 })
@@ -34,6 +41,9 @@ export class User {
 
   @Column({ type: "varchar", default: "Rookie" })
   current_rank: string;
+
+  @Column({ type: "boolean", default: true })
+  is_active: boolean;
 
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
@@ -58,4 +68,16 @@ export class User {
 
   @OneToMany(() => FocusSession, (session) => session.user, { cascade: true })
   focusSessions: FocusSession[];
+
+  @OneToMany(() => Notification, (notification) => notification.user, { cascade: true })
+  notifications: Notification[];
+
+  @OneToMany(() => UserBadge, (userBadge) => userBadge.user, { cascade: true })
+  badges: UserBadge[];
+
+  @OneToMany(() => FCMToken, (token) => token.user, { cascade: true })
+  fcmTokens: FCMToken[];
+
+  @OneToMany(() => TaskCollaborator, (collab) => collab.user)
+  collaborations: TaskCollaborator[];
 }

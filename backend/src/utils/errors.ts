@@ -10,20 +10,26 @@ export class AppError extends Error {
 }
 
 export const errorResponse = (status: number, message: string, code?: string) => {
-  return {
-    status,
-    error: {
+  return new Response(
+    JSON.stringify({
+      status,
+      success: false,
       message,
       code: code || "ERROR",
-    },
-  };
+      data: null,
+    }),
+    { status, headers: { "Content-Type": "application/json" } }
+  );
 };
 
-export const successResponse = (data: any, message: string = "Success") => {
-  return {
-    status: 200,
-    success: true,
-    message,
-    data,
-  };
+export const successResponse = (data: any, message: string = "Success", httpStatus: number = 200) => {
+  return new Response(
+    JSON.stringify({
+      status: httpStatus,
+      success: true,
+      message,
+      data,
+    }),
+    { status: httpStatus, headers: { "Content-Type": "application/json" } }
+  );
 };

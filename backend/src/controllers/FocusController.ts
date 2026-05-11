@@ -145,7 +145,7 @@ export class FocusController {
   // Compare with other users
   async compareWithOtherUsers(userId: string, metric: string = "totalMinutes") {
     try {
-      const comparison = await focusService.compareWithOtherUsers(userId, metric);
+      const comparison = await focusService.compareWithOtherUsers(userId, metric as any);
       return successResponse(comparison, "User comparison retrieved");
     } catch (error) {
       if (error instanceof AppError) {

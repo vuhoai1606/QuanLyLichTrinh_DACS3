@@ -13,8 +13,21 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     async ({ body }: { body: any }) => authController.login(body),
     { tags: ["Auth"] }
   )
+  .post(
+    "/google-login",
+    async ({ body }: { body: any }) => authController.googleLogin(body),
+    { tags: ["Auth"] }
+  )
   .get(
     "/me",
+    async (ctx: AuthContext) => {
+      authMiddleware(ctx);
+      return authController.getProfile(ctx);
+    },
+    { tags: ["Auth"] }
+  )
+  .get(
+    "/profile",
     async (ctx: AuthContext) => {
       authMiddleware(ctx);
       return authController.getProfile(ctx);

@@ -4,6 +4,8 @@ import { Group } from "./Group";
 import { Category } from "./Category";
 import { Reminder } from "./Reminder";
 import { ScheduleAssignment } from "./ScheduleAssignment";
+import { ShareLog } from "./ShareLog";
+import { TaskCollaborator } from "./TaskCollaborator";
 
 @Entity("schedules")
 export class Schedule {
@@ -25,8 +27,14 @@ export class Schedule {
   @Column({ type: "text", nullable: true })
   description: string;
 
+  @Column({ type: "varchar", nullable: true })
+  location: string;
+
   @Column({ type: "varchar", enum: ["TODO", "TASK", "EVENT"] })
   type: "TODO" | "TASK" | "EVENT";
+
+  @Column({ type: "varchar", enum: ["LOW", "MEDIUM", "HIGH"], default: "MEDIUM" })
+  priority: "LOW" | "MEDIUM" | "HIGH";
 
   @Column({ type: "timestamp", nullable: true })
   start_time: Date;
@@ -72,4 +80,10 @@ export class Schedule {
 
   @OneToMany(() => ScheduleAssignment, (assignment) => assignment.schedule, { cascade: true })
   assignments: ScheduleAssignment[];
+
+  @OneToMany(() => ShareLog, (shareLog) => shareLog.schedule)
+  shareLogs: ShareLog[];
+
+  @OneToMany(() => TaskCollaborator, (collaborator) => collaborator.schedule)
+  collaborators: TaskCollaborator[];
 }

@@ -3,26 +3,33 @@ import { generateUUID } from "@utils/validation";
 import { AppError } from "@utils/errors";
 
 export class CollaborationService {
-  async createGroup(name: string, leader_id: string): Promise<any> {
+  async createGroup(userId: string, name: string, description?: string, memberIds: string[] = []): Promise<any> {
     const groupRepository = AppDataSource.getRepository("Group");
     const groupMemberRepository = AppDataSource.getRepository("GroupMember");
 
     const group = groupRepository.create({
-      id: generateUUID(),
       name,
-      leader_id,
+      description,
+      leader_id: userId,
     });
 
     const savedGroup = await groupRepository.save(group);
 
-    await groupMemberRepository.save(
-      groupMemberRepository.create({
-        group_id: savedGroup.id,
-        user_id: leader_id,
-      })
-    );
+    // Add creator as member
+    const members = [{ group_id: savedGroup.id, user_id: userId }];
+    
+    // Add other members
+    if (memberIds.length > 0) {
+      memberIds.forEach(id => {
+        if (id !== userId) {
+          members.push({ group_id: savedGroup.id, user_id: id });
+        }
+      });
+    }
 
-    return savedGroup;
+    await groupMemberRepository.save(members);
+
+    return this.getGroupDetails(savedGroup.id);
   }
 
   async addMemberToGroup(group_id: string, user_id: string, requester_id: string): Promise<any> {
@@ -81,12 +88,19 @@ export class CollaborationService {
   async getUserGroups(user_id: string): Promise<any[]> {
     const groupMemberRepository = AppDataSource.getRepository("GroupMember");
 
-    const members = await groupMemberRepository.find({
+    const userMemberships = await groupMemberRepository.find({
       where: { user_id },
-      relations: ["group"],
+      relations: ["group", "group.members", "group.members.user"],
     });
 
-    return members.map((m: any) => m.group);
+    return userMemberships.map((m: any) => ({
+      ...m.group,
+      members: m.group.members.map((gm: any) => ({
+        id: gm.user.id,
+        full_name: gm.user.full_name,
+        avatar_url: gm.user.avatar_url,
+      })),
+    }));
   }
 
   async getGroupMembers(group_id: string): Promise<any[]> {
@@ -103,12 +117,17 @@ export class CollaborationService {
     }));
   }
 
-  async getAssignmentsForUser(user_id: string): Promise<any[]> {
+  async getAssignmentsForUser(user_id: string, status?: "PENDING" | "ACCEPTED" | "DECLINED"): Promise<any[]> {
     const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
 
+    const where: any = { assignee_id: user_id };
+    if (status) {
+      where.assign_status = status;
+    }
+
     return assignmentRepository.find({
-      where: { assignee_id: user_id, assign_status: "PENDING" },
-      relations: ["schedule"],
+      where,
+      relations: ["schedule", "schedule.creator"],
     });
   }
 
@@ -361,10 +380,20 @@ export class CollaborationService {
       where: { user_id },
     });
 
+    // Return early if no collaborations
+    if (collaborations.length === 0) {
+      return {
+        totalShared: 0,
+        schedules: [],
+      };
+    }
+
     const scheduleIds = collaborations.map(c => c.schedule_id);
 
+    // Use proper TypeORM In operator
+    const { In } = require("typeorm");
     const schedules = await scheduleRepository.find({
-      where: { id: { in: scheduleIds } },
+      where: { id: In(scheduleIds) },
     });
 
     return {

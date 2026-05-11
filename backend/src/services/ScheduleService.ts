@@ -27,6 +27,7 @@ export class ScheduleService {
 
   async createSchedule(data: any): Promise<any> {
     const scheduleRepository = AppDataSource.getRepository("Schedule");
+    const reminderRepository = AppDataSource.getRepository("Reminder");
     
     if (data.type === "TODO" && !data.title) {
       throw new AppError(400, "Title is required", "MISSING_TITLE");
@@ -37,21 +38,57 @@ export class ScheduleService {
     }
 
     if (data.type === "EVENT") {
-      if (!data.start_date || !data.end_date) {
-        throw new AppError(400, "Start date and end date required for EVENT", "MISSING_TIME");
+      const startTime = data.start_time || data.start_date;
+      const endTime = data.end_time || data.end_date;
+
+      if (!startTime || !endTime) {
+        throw new AppError(400, "Start time and end time required for EVENT", "MISSING_TIME");
       }
-      if (data.end_date <= data.start_date) {
-        throw new AppError(400, "End date must be after start date", "INVALID_TIME");
+      if (new Date(endTime) <= new Date(startTime)) {
+        throw new AppError(400, "End time must be after start time", "INVALID_TIME");
       }
     }
 
+    const { reminders, collaborators, ...scheduleData } = data;
+
     const schedule = scheduleRepository.create({
       id: generateUUID(),
-      ...data,
+      ...scheduleData,
+      start_time: data.start_time || data.start_date,
+      end_time: data.end_time || data.end_date,
       status: "PENDING",
     });
 
-    return scheduleRepository.save(schedule);
+    const savedSchedule = await scheduleRepository.save(schedule);
+
+    // Save reminders if provided
+    if (reminders && Array.isArray(reminders)) {
+      const reminderEntities = reminders.map((r: any) => 
+        reminderRepository.create({
+          id: generateUUID(),
+          schedule_id: savedSchedule.id,
+          trigger_type: r.trigger_type || "MIN_15",
+          is_alarm: r.is_alarm || false,
+          custom_time: r.custom_time,
+        })
+      );
+      await reminderRepository.save(reminderEntities);
+    }
+
+    // Save collaborators if provided
+    if (collaborators && Array.isArray(collaborators)) {
+      const collaboratorRepository = AppDataSource.getRepository("TaskCollaborator");
+      const collaboratorEntities = collaborators.map((userId: string) => 
+        collaboratorRepository.create({
+          schedule_id: savedSchedule.id,
+          user_id: userId,
+          permission_level: "VIEW",
+        })
+      );
+      await collaboratorRepository.save(collaboratorEntities);
+    }
+
+    return this.getScheduleById(savedSchedule.id);
   }
 
   async getTimelineForUser(userId: string, startDate: Date, endDate: Date): Promise<any[]> {
@@ -59,14 +96,53 @@ export class ScheduleService {
     
     const schedules = await scheduleRepository.find({
       where: { creator_id: userId },
-      relations: ["category"],
-      order: { start_date: "DESC", deadline: "DESC", created_at: "DESC" },
+      relations: ["category", "reminders"],
+      order: { start_time: "DESC", deadline: "DESC", created_at: "DESC" },
     });
 
     return schedules.filter((s: any) => {
-      const compareDate = s.start_date || s.deadline || s.created_at;
-      return compareDate >= startDate && compareDate <= endDate;
+      const compareDate = s.start_time || s.deadline || s.created_at;
+      return new Date(compareDate) >= new Date(startDate) && new Date(compareDate) <= new Date(endDate);
     });
+  }
+
+  async getScheduleById(scheduleId: string): Promise<any> {
+    const scheduleRepository = AppDataSource.getRepository("Schedule");
+
+    const schedule = await scheduleRepository.findOne({
+      where: { id: scheduleId },
+      relations: ["category", "reminders", "collaborators", "collaborators.user"],
+    });
+
+    if (!schedule) {
+      throw new AppError(404, "Schedule not found", "SCHEDULE_NOT_FOUND");
+    }
+
+    return {
+      id: schedule.id,
+      title: schedule.title,
+      description: schedule.description,
+      location: schedule.location,
+      type: schedule.type,
+      status: schedule.status,
+      priority: (schedule as any).priority,
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+      deadline: schedule.deadline,
+      category_name: schedule.category?.name ?? null,
+      category_color: schedule.category?.hex_color ?? null,
+      creator_id: schedule.creator_id,
+      group_id: schedule.group_id,
+      reminders: schedule.reminders,
+      collaborators: schedule.collaborators?.map((c: any) => ({
+        id: c.user.id,
+        full_name: c.user.full_name,
+        avatar_url: c.user.avatar_url,
+      })),
+      is_all_day: schedule.is_all_day,
+      rrule: schedule.rrule,
+      created_at: schedule.created_at,
+    };
   }
 
   async updateSchedule(scheduleId: string, userId: string, updates: any): Promise<any> {
@@ -310,6 +386,32 @@ export class ScheduleService {
     return {
       deletedCount: schedules.length,
       deletedIds: scheduleIds,
+    };
+  }
+  async getWeeklyGoalProgress(userId: string): Promise<any> {
+    const scheduleRepository = AppDataSource.getRepository("Schedule");
+    const userSettingsRepository = AppDataSource.getRepository("UserSettings");
+
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const completedThisWeek = await scheduleRepository.count({
+      where: {
+        creator_id: userId,
+        status: "DONE",
+        updated_at: { moreThanOrEqual: weekStart } as any,
+      },
+    });
+
+    const settings = await userSettingsRepository.findOne({ where: { user_id: userId } });
+    const goal = settings?.weekly_task_goal || 10;
+
+    return {
+      completed: completedThisWeek,
+      total: goal,
+      percent: Math.min(100, Math.round((completedThisWeek / goal) * 100)),
     };
   }
 }

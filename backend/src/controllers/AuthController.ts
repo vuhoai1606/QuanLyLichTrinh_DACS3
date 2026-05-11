@@ -1,49 +1,75 @@
 import authService from "@services/AuthService";
 import { successResponse, errorResponse, AppError } from "@utils/errors";
 import { AuthContext } from "@middleware/auth";
+import { validateRegister, validateLogin, validateChangePassword, validateUpdateProfile, RegisterDTO, LoginDTO } from "@dtos/auth.dto";
+import { logger } from "@utils/logger";
+import { APP_CONSTANTS } from "@constants/app.constants";
 
 export class AuthController {
-  // Register new user
-  async register(body: any) {
-    const { email, password, full_name } = body;
-
-    if (!email || !password || !full_name) {
-      return errorResponse(400, "Email, password, and full name required", "MISSING_FIELDS");
-    }
-
+  /**
+   * Register new user
+   * POST /api/auth/register
+   */
+  async register(body: any): Promise<Response> {
     try {
-      const result = await authService.register(email, password, full_name);
+      logger.debug("Register request received", { email: body.email });
 
-      return new Response(
-        JSON.stringify({
-          status: 201,
-          success: true,
-          message: "User registered successfully",
-          data: {
-            user: result.user,
-            token: result.token,
-          },
-        }),
-        { status: 201, headers: { "Content-Type": "application/json" } }
+      // Validate input
+      const validation = validateRegister(body);
+      if (!validation.valid) {
+        logger.warn("Register validation failed", { errors: validation.errors });
+        return errorResponse(
+          APP_CONSTANTS.HTTP.BAD_REQUEST,
+          validation.errors.join(", "),
+          APP_CONSTANTS.ERROR_CODES.VALIDATION_ERROR
+        );
+      }
+
+      const result = await authService.register(body.email, body.password, body.full_name);
+      logger.info("User registered successfully", { userId: result.user.id, email: body.email });
+
+      return successResponse(
+        {
+          user: result.user,
+          token: result.token,
+        },
+        "User registered successfully",
+        APP_CONSTANTS.HTTP.CREATED
       );
     } catch (error) {
+      logger.error("Register error", error instanceof Error ? error : new Error(String(error)));
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);
       }
-      return errorResponse(500, error instanceof Error ? error.message : "Internal server error");
+      return errorResponse(
+        APP_CONSTANTS.HTTP.INTERNAL_ERROR,
+        "Internal server error",
+        APP_CONSTANTS.ERROR_CODES.INTERNAL_ERROR
+      );
     }
   }
 
-  // Login user
-  async login(body: any) {
-    const { email, password } = body;
-
-    if (!email || !password) {
-      return errorResponse(400, "Email and password required", "MISSING_FIELDS");
-    }
-
+  /**
+   * Login user
+   * POST /api/auth/login
+   */
+  async login(body: any): Promise<Response> {
     try {
-      const result = await authService.login(email, password);
+      logger.debug("Login request received", { email: body.email });
+
+      // Validate input
+      const validation = validateLogin(body);
+      if (!validation.valid) {
+        logger.warn("Login validation failed", { errors: validation.errors });
+        return errorResponse(
+          APP_CONSTANTS.HTTP.BAD_REQUEST,
+          validation.errors.join(", "),
+          APP_CONSTANTS.ERROR_CODES.VALIDATION_ERROR
+        );
+      }
+
+      const result = await authService.login(body.email, body.password);
+      logger.info("User logged in successfully", { userId: result.user.id, email: body.email });
 
       return successResponse(
         {
@@ -53,6 +79,42 @@ export class AuthController {
         "Login successful"
       );
     } catch (error) {
+      logger.error("Login error", error instanceof Error ? error : new Error(String(error)));
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(
+        APP_CONSTANTS.HTTP.INTERNAL_ERROR,
+        "Internal server error",
+        APP_CONSTANTS.ERROR_CODES.INTERNAL_ERROR
+      );
+    }
+  }
+
+  /**
+   * Google Login
+   * POST /api/auth/google-login
+   */
+  async googleLogin(body: any): Promise<Response> {
+    try {
+      const { googleId, email, fullName, avatarUrl } = body;
+
+      if (!googleId || !email) {
+        return errorResponse(400, "Google ID and email are required", "MISSING_FIELDS");
+      }
+
+      const result = await authService.googleLogin(googleId, email, fullName, avatarUrl);
+      logger.info("User logged in via Google", { userId: result.user.id, email: email });
+
+      return successResponse(
+        {
+          user: result.user,
+          token: result.token,
+        },
+        "Google login successful"
+      );
+    } catch (error) {
+      logger.error("Google login error", error instanceof Error ? error : new Error(String(error)));
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);
       }

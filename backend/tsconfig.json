@@ -10,6 +10,9 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
+    "strictPropertyInitialization": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -19,6 +22,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@config/*": ["src/config/*"],
+      "@constants/*": ["src/constants/*"],
+      "@dtos/*": ["src/dtos/*"],
       "@models/*": ["src/models/*"],
       "@controllers/*": ["src/controllers/*"],
       "@services/*": ["src/services/*"],

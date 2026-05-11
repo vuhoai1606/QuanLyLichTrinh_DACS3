@@ -3,6 +3,23 @@ import dashboardService from "@services/DashboardService";
 import { successResponse, errorResponse, AppError } from "@utils/errors";
 
 export class ScheduleController {
+  // Get schedule by ID
+  async getScheduleById(scheduleId: string) {
+    if (!scheduleId) {
+      return errorResponse(400, "scheduleId required", "MISSING_FIELDS");
+    }
+
+    try {
+      const schedule = await scheduleService.getScheduleById(scheduleId);
+      return successResponse(schedule, "Schedule retrieved");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
   // Create category
   async createCategory(body: any) {
     const { user_id, name, hex_color } = body;
@@ -301,6 +318,23 @@ export class ScheduleController {
     try {
       const stats = await dashboardService.getMonthlyStats(userId);
       return successResponse(stats, "Monthly statistics");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  // Weekly goal progress
+  async getWeeklyGoalProgress(userId: string) {
+    if (!userId) {
+      return errorResponse(400, "user_id required", "MISSING_FIELDS");
+    }
+
+    try {
+      const progress = await scheduleService.getWeeklyGoalProgress(userId);
+      return successResponse(progress, "Weekly goal progress");
     } catch (error) {
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);

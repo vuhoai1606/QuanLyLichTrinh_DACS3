@@ -7,7 +7,7 @@ export interface AuthContext extends Context {
 }
 
 export const authMiddleware = (ctx: AuthContext) => {
-  const token = extractToken(ctx.request.headers.get("authorization"));
+  const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
   
   if (!token) {
     return errorResponse(401, "Missing authorization token", "MISSING_TOKEN");
@@ -22,7 +22,7 @@ export const authMiddleware = (ctx: AuthContext) => {
 };
 
 export const optionalAuthMiddleware = (ctx: AuthContext) => {
-  const token = extractToken(ctx.request.headers.get("authorization"));
+  const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
   
   if (token) {
     const payload = verifyToken(token);

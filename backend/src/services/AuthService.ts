@@ -1,27 +1,34 @@
 import { AppDataSource } from "@config/database";
+import { config } from "@config/env";
 import { hashPassword, comparePassword, validatePassword } from "@utils/password";
 import { generateUUID, isValidEmail } from "@utils/validation";
 import { AppError } from "@utils/errors";
+import jwt from "jsonwebtoken";
 
 export class AuthService {
   async register(email: string, password: string, full_name: string): Promise<any> {
+    console.log("🔐 Service: Register started for", email);
     const userRepository = AppDataSource.getRepository("User");
     const userSettingsRepository = AppDataSource.getRepository("UserSettings");
 
     if (!isValidEmail(email)) {
+      console.log("❌ Invalid email format:", email);
       throw new AppError(400, "Invalid email format", "INVALID_EMAIL");
     }
 
     const passwordValidation = validatePassword(password);
+    console.log("🔑 Password validation:", passwordValidation);
     if (!passwordValidation.valid) {
       throw new AppError(400, passwordValidation.message || "Invalid password", "INVALID_PASSWORD");
     }
 
     const existingUser = await userRepository.findOne({ where: { email: email.toLowerCase() } });
     if (existingUser) {
+      console.log("❌ Email already exists");
       throw new AppError(409, "Email already exists", "EMAIL_EXISTS");
     }
 
+    console.log("✅ Creating new user...");
     const user = userRepository.create({
       id: generateUUID(),
       email: email.toLowerCase(),
@@ -30,6 +37,7 @@ export class AuthService {
     });
 
     const savedUser = await userRepository.save(user);
+    console.log("✅ User saved:", savedUser.id);
 
     const settings = userSettingsRepository.create({
       user_id: savedUser.id,
@@ -40,7 +48,10 @@ export class AuthService {
     });
 
     await userSettingsRepository.save(settings);
+    console.log("✅ User settings saved");
+    
     const token = await this.generateToken(savedUser.id);
+    console.log("✅ Token generated");
 
     return { user: savedUser, token };
   }
@@ -53,9 +64,55 @@ export class AuthService {
       throw new AppError(401, "Invalid credentials", "INVALID_CREDENTIALS");
     }
 
+    if (!user.password_hash) {
+      throw new AppError(400, "This account uses Google login. Please use Continue with Google.", "USE_SOCIAL_LOGIN");
+    }
+
     const validPassword = await comparePassword(password, user.password_hash);
     if (!validPassword) {
       throw new AppError(401, "Invalid credentials", "INVALID_CREDENTIALS");
+    }
+
+    const token = await this.generateToken(user.id);
+    return { user, token };
+  }
+
+  async googleLogin(googleId: string, email: string, fullName: string, avatarUrl?: string): Promise<any> {
+    const userRepository = AppDataSource.getRepository("User");
+    const userSettingsRepository = AppDataSource.getRepository("UserSettings");
+
+    let user = await userRepository.findOne({ 
+      where: [{ google_id: googleId }, { email: email.toLowerCase() }] 
+    }) as any;
+
+    if (!user) {
+      // Create new user for first-time Google sign-in
+      user = userRepository.create({
+        id: generateUUID(),
+        email: email.toLowerCase(),
+        google_id: googleId,
+        full_name: fullName,
+        avatar_url: avatarUrl,
+        is_active: true
+      });
+      user = await userRepository.save(user);
+
+      // Initialize settings
+      const settings = userSettingsRepository.create({
+        user_id: user.id,
+        language: "en",
+        theme: "SYSTEM",
+        default_focus_minutes: 25,
+        notifications_enabled: true,
+      });
+      await userSettingsRepository.save(settings);
+    } else {
+      // Link Google ID if not already linked
+      if (!user.google_id) {
+        user.google_id = googleId;
+        if (avatarUrl && !user.avatar_url) user.avatar_url = avatarUrl;
+        await userRepository.save(user);
+      }
     }
 
     const token = await this.generateToken(user.id);
@@ -120,9 +177,9 @@ export class AuthService {
       return { success: true, message: "If email exists, reset link will be sent" };
     }
 
-    const resetToken = require("jsonwebtoken").sign(
+    const resetToken = jwt.sign(
       { userId: user.id, type: "password_reset" },
-      process.env.JWT_SECRET || "secret",
+      config.jwt.secret,
       { expiresIn: "1h" }
     );
 
@@ -138,10 +195,8 @@ export class AuthService {
   }
 
   async resetPassword(resetToken: string, newPassword: string): Promise<any> {
-    const jwt = require("jsonwebtoken");
-    
     try {
-      const decoded = jwt.verify(resetToken, process.env.JWT_SECRET || "secret");
+      const decoded = jwt.verify(resetToken, config.jwt.secret) as any;
       if (decoded.type !== "password_reset") {
         throw new AppError(401, "Invalid reset token", "INVALID_TOKEN");
       }
@@ -172,10 +227,8 @@ export class AuthService {
   }
 
   async refreshToken(token: string): Promise<any> {
-    const jwt = require("jsonwebtoken");
-    
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret", { ignoreExpiration: true });
+      const decoded = jwt.verify(token, config.jwt.secret, { ignoreExpiration: true }) as any;
       
       if (Date.now() >= decoded.exp * 1000) {
         const userRepository = AppDataSource.getRepository("User");
@@ -196,10 +249,8 @@ export class AuthService {
   }
 
   async verifyToken(token: string): Promise<any> {
-    const jwt = require("jsonwebtoken");
-    
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+      const decoded = jwt.verify(token, config.jwt.secret) as any;
       const userRepository = AppDataSource.getRepository("User");
       const user = await userRepository.findOne({ where: { id: decoded.userId } });
 
@@ -218,10 +269,9 @@ export class AuthService {
   }
 
   private async generateToken(userId: string): Promise<string> {
-    const jwt = require("jsonwebtoken");
-    return jwt.sign({ userId }, process.env.JWT_SECRET || "secret", {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    });
+    return jwt.sign({ userId }, config.jwt.secret as any, {
+      expiresIn: config.jwt.expiresIn as any,
+    } as any);
   }
 }
 

@@ -8,16 +8,16 @@ export interface JWTPayload {
 
 export const generateToken = (userId: string, email: string): string => {
   return jwt.sign(
-    { userId, email } as JWTPayload,
-    config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn }
+    { userId, email },
+    config.jwt.secret as any,
+    { expiresIn: config.jwt.expiresIn as any } as any
   );
 };
 
 export const verifyToken = (token: string): JWTPayload | null => {
   try {
-    const decoded = jwt.verify(token, config.jwt.secret) as JWTPayload;
-    return decoded;
+    const decoded = jwt.verify(token, config.jwt.secret as any) as any;
+    return decoded as JWTPayload;
   } catch (error) {
     return null;
   }

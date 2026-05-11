@@ -9,7 +9,8 @@
     "build": "bun build src/bootstrap.ts --outdir dist",
     "start": "bun src/bootstrap.ts",
     "prod": "bun dist/bootstrap.js",
-    "test": "bun test"
+    "test:setup": "bun run setup-test-db.js",
+    "test": "bun run test:setup && bun test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -23,10 +24,13 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^3.0.0",
     "@types/bun": "latest",
     "@types/cors": "^2.8.17",
-    "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^20.10.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.40",
+    "@types/uuid": "^11.0.0",
     "typescript": "^5.3.3"
   },
   "peerDependencies": {

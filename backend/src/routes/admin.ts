@@ -9,4 +9,4 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
   .get("/statistics", async (ctx: AuthContext) => { authMiddleware(ctx); return adminController.getSystemStatistics(); }, { tags: ["Admin"] })
   .post("/maintenance", async (ctx: AuthContext) => { authMiddleware(ctx); const body = (ctx as any).body; return adminController.triggerMaintenance(body?.action); }, { tags: ["Admin"] })
   .get("/logs", async (ctx: AuthContext) => { authMiddleware(ctx); const query = (ctx.request?.url?.split("?")[1] || "") as any; return adminController.getSystemLogs(query); }, { tags: ["Admin"] })
-  .get("/users/search/:query", async (ctx: AuthContext) => { authMiddleware(ctx); return adminController.searchUsers((ctx.params as any)?.query); }, { tags: ["Admin"] });
+  .get("/users/search/:searchQuery", async (ctx: AuthContext) => { authMiddleware(ctx); return adminController.searchUsers((ctx.params as any)?.searchQuery); }, { tags: ["Admin"] });
