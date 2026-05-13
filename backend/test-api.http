@@ -1,0 +1,54 @@
+### Test Backend API Endpoints
+
+### Health Check
+GET http://localhost:3000/health
+
+### Root Endpoint  
+GET http://localhost:3000/
+
+### Register User
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "full_name": "Test User",
+  "email": "testuser@example.com",
+  "password": "password123"
+}
+
+### Login User
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "password123"
+}
+
+### Get Current User Profile (requires auth token)
+GET http://localhost:3000/api/users/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### Get User Schedules (requires auth)
+GET http://localhost:3000/api/schedule
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### Create Schedule (requires auth)
+POST http://localhost:3000/api/schedule
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "title": "Test Schedule",
+  "description": "A test schedule",
+  "type": "TODO",
+  "priority": "HIGH"
+}
+
+### Get Collaboration Groups (requires auth)
+GET http://localhost:3000/api/collaboration/groups
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### Get Focus Stats (requires auth)
+GET http://localhost:3000/api/focus/stats
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...

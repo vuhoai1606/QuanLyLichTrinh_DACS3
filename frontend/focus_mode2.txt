@@ -1,0 +1,362 @@
+const imgUserProfile = "https://www.figma.com/api/mcp/asset/9e2d5dbe-12cc-41cf-9edf-8f97415b77f6";
+const imgUserProfileAvatar = "https://www.figma.com/api/mcp/asset/9ac31f12-26d2-4b71-b7c7-3dcdb7c6bca1";
+const imgContainer = "https://www.figma.com/api/mcp/asset/39f26817-222e-453d-b305-96c302845c4c";
+const imgContainer1 = "https://www.figma.com/api/mcp/asset/b260ac80-0936-4433-a04e-22ad079ccfa2";
+const imgContainer2 = "https://www.figma.com/api/mcp/asset/565fc222-02a6-44db-bf97-c298c5e3e5a5";
+const imgContainer3 = "https://www.figma.com/api/mcp/asset/75701449-752f-4a0e-b658-d2e28c84fc5f";
+const imgContainer4 = "https://www.figma.com/api/mcp/asset/d3ee7d12-1439-479c-b38c-1a9c67400b08";
+const imgContainer5 = "https://www.figma.com/api/mcp/asset/d97f4366-c8f5-4f2c-9492-4fe5ef263031";
+const imgContainer6 = "https://www.figma.com/api/mcp/asset/e780f200-007b-45f6-bca9-f06a320f774a";
+const imgContainer7 = "https://www.figma.com/api/mcp/asset/2f6880ac-9a08-4d7e-b66e-2f02b3063e53";
+const imgContainer8 = "https://www.figma.com/api/mcp/asset/bdb43421-2068-4a34-83d1-5300d8a4ab53";
+const imgContainer9 = "https://www.figma.com/api/mcp/asset/eb331db7-e8b9-4772-b042-3efd0fd460c6";
+const imgContainer10 = "https://www.figma.com/api/mcp/asset/59c1c00e-adb3-45f4-9bda-71d86d082a08";
+const imgContainer11 = "https://www.figma.com/api/mcp/asset/f37c77c0-fc3f-4235-aaf9-fce52846cdf9";
+const imgContainer12 = "https://www.figma.com/api/mcp/asset/e5779e80-c845-4b42-b4b2-026259468f69";
+const imgContainer13 = "https://www.figma.com/api/mcp/asset/3bea4a56-9725-457d-aa91-2f279087de66";
+const imgContainer14 = "https://www.figma.com/api/mcp/asset/3175c9b6-fdf5-4a34-ac97-51c848f25795";
+const imgContainer15 = "https://www.figma.com/api/mcp/asset/81fc82b8-3e58-43f5-97e8-02563de0be32";
+const imgContainer16 = "https://www.figma.com/api/mcp/asset/c1dbd215-4449-4d34-8de4-bf35d42e46e2";
+const imgContainer17 = "https://www.figma.com/api/mcp/asset/b8118f51-9cd2-4a86-87b3-ae6b042ef810";
+const imgContainer18 = "https://www.figma.com/api/mcp/asset/4d4b6f8c-4e69-4f85-8873-b47ec95d0417";
+
+export default function ProfileSettingsSyncHeaderFinal() {
+  return (
+    <div className="content-stretch flex flex-col items-start relative size-full" data-node-id="0:3" style={{ backgroundImage: "linear-gradient(90deg, rgb(17, 19, 22) 0%, rgb(17, 19, 22) 100%), linear-gradient(90deg, rgb(255, 255, 255) 0%, rgb(255, 255, 255) 100%)" }} data-name="Profile & Settings - Sync Header Final">
+      <div className="content-stretch flex flex-col gap-[24px] items-start overflow-clip pb-[104px] pt-[88px] px-[24px] relative shrink-0 w-full" data-node-id="0:4" data-name="Main Content Canvas">
+        <div className="bg-[#1e2023] content-stretch flex flex-col gap-[12px] items-start overflow-clip p-[24px] relative rounded-[12px] shadow-[0px_0px_0px_1px_rgba(60,73,70,0.3),0px_8px_32px_0px_rgba(0,0,0,0.2)] shrink-0 w-full" data-node-id="0:5" data-name="Section - Gamified Profile Card">
+          <div className="absolute bg-[rgba(89,219,199,0.1)] blur-[32px] right-[-64px] rounded-[9999px] size-[128px] top-[-64px]" data-node-id="0:6" data-name="Decorative gradient orb in background" />
+          <div className="content-stretch flex gap-[16px] items-center relative shrink-0 w-full" data-node-id="0:7" data-name="Container">
+            <div className="border-2 border-[rgba(89,219,199,0.5)] border-solid content-stretch flex flex-col items-start justify-center overflow-clip p-[6px] relative rounded-[9999px] shrink-0 size-[80px]" data-node-id="0:8" data-name="Border">
+              <div className="flex-[1_0_0] min-h-px relative rounded-[9999px] w-full" data-node-id="0:9" data-name="User Profile">
+                <div className="absolute bg-clip-padding border-0 border-[transparent] border-solid inset-0 overflow-hidden pointer-events-none rounded-[9999px]">
+                  <img alt="" className="absolute left-0 max-w-none size-full top-0" src={imgUserProfile} />
+                </div>
+              </div>
+            </div>
+            <div className="content-stretch flex flex-[1_0_0] flex-col items-start min-w-px relative" data-node-id="0:10" data-name="Container">
+              <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="0:11" data-name="Heading 2">
+                <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold justify-center leading-[0] not-italic relative shrink-0 text-[#e2e2e6] text-[24px] tracking-[-0.24px] w-full" data-node-id="0:12">
+                  <p className="leading-[32px]">Alex Rivers</p>
+                </div>
+              </div>
+              <div className="content-stretch flex flex-col items-start pt-[4px] relative shrink-0 w-full" data-node-id="0:13" data-name="Margin">
+                <div className="content-stretch flex items-center relative shrink-0 w-full" data-node-id="0:14" data-name="Container">
+                  <div className="bg-[rgba(173,123,255,0.2)] border border-[rgba(173,123,255,0.3)] border-solid content-stretch flex flex-col items-start px-[9px] py-[3px] relative rounded-[4px] shrink-0" data-node-id="0:15" data-name="Overlay+Border">
+                    <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium h-[16px] justify-center leading-[0] not-italic relative shrink-0 text-[#3f0084] text-[12px] tracking-[0.6px] uppercase w-[101.78px]" data-node-id="0:16">
+                      <p className="leading-[16px]">GOLD SCHOLAR</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="content-stretch flex flex-col items-start pt-[8px] relative shrink-0 w-full" data-node-id="0:17" data-name="Margin">
+            <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full" data-node-id="0:18" data-name="Container">
+              <div className="content-stretch flex items-end justify-between relative shrink-0 w-full" data-node-id="0:19" data-name="Container">
+                <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="0:20" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold h-[20px] justify-center leading-[0] not-italic relative shrink-0 text-[#bbcac5] text-[14px] tracking-[1.4px] uppercase w-[54.97px]" data-node-id="0:21">
+                    <p className="leading-[20px]">LVL 42</p>
+                  </div>
+                </div>
+                <div className="content-stretch flex gap-[8.5px] items-end pb-[2.5px] relative shrink-0" data-node-id="0:22" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold h-[24px] justify-center leading-[0] not-italic relative shrink-0 text-[#59dbc7] text-[24px] text-right tracking-[-0.24px] w-[63px]" data-node-id="0:23">
+                    <p className="leading-[24px]">1,240</p>
+                  </div>
+                  <div className="content-stretch flex items-start justify-end relative shrink-0" data-node-id="0:24" data-name="Container">
+                    <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium h-[16px] justify-center leading-[0] not-italic relative shrink-0 text-[#869490] text-[12px] text-right tracking-[0.48px] w-[69.63px]" data-node-id="0:25">
+                      <p className="leading-[16px]">/ 2000 EXP</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="h-[10px] overflow-clip relative rounded-[9999px] shrink-0 w-full" data-node-id="0:26" data-name="Progress Bar">
+                <div aria-hidden="true" className="absolute bg-[rgba(89,219,199,0.1)] inset-0 pointer-events-none rounded-[9999px]" />
+                <div className="absolute bg-gradient-to-r from-[#59dbc7] inset-[0_38%_0_0] rounded-[9999px] shadow-[0px_0px_10px_0px_rgba(89,219,199,0.5)] to-[#d5baff]" data-node-id="0:27" data-name="Gradient+Shadow" />
+                <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0px_2px_4px_0px_rgba(0,0,0,0.05)]" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full" data-node-id="0:28" data-name="Section - Focus Stats (Bento Layout)">
+          <div className="content-stretch flex flex-col items-start pl-[4px] relative shrink-0 w-full" data-node-id="0:29" data-name="Heading 3">
+            <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold justify-center leading-[0] not-italic relative shrink-0 text-[#bbcac5] text-[14px] tracking-[1.4px] uppercase w-full" data-node-id="0:30">
+              <p className="leading-[20px]">FOCUS STATS</p>
+            </div>
+          </div>
+          <div className="gap-x-[12px] gap-y-[12px] grid grid-cols-[repeat(2,minmax(0,1fr))] grid-rows-[_156px] relative shrink-0 w-full" data-node-id="0:31" data-name="Container">
+            <div className="bg-[#1e2023] col-1 content-stretch flex flex-col gap-[4px] items-start justify-self-stretch pb-[56px] pt-[12px] px-[12px] relative rounded-[8px] row-1 self-start shrink-0" data-node-id="0:32" data-name="Background">
+              <div className="absolute bg-[rgba(255,255,255,0)] inset-0 rounded-[8px] shadow-[0px_0px_0px_1px_rgba(60,73,70,0.2)]" data-node-id="0:33" data-name="Overlay+Shadow" />
+              <div className="h-[21px] relative shrink-0 w-full" data-node-id="0:34" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer} />
+              </div>
+              <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="0:36" data-name="Container">
+                <div className="flex flex-col font-['Inter:Bold',sans-serif] font-bold justify-center leading-[0] not-italic relative shrink-0 text-[#e2e2e6] text-[34px] tracking-[-0.68px] w-full" data-node-id="0:37">
+                  <p className="leading-[40px]">142h</p>
+                </div>
+              </div>
+              <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="0:38" data-name="Container">
+                <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[#869490] text-[12px] tracking-[0.48px] w-full" data-node-id="0:39">
+                  <p className="leading-[16px]">Total Focus Time</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-2 content-stretch flex flex-col gap-[12px] items-start justify-self-stretch relative row-1 self-start shrink-0" data-node-id="0:40" data-name="Container">
+              <div className="bg-[#1e2023] content-stretch flex flex-col items-start justify-center overflow-clip p-[12px] relative rounded-[8px] shadow-[0px_0px_0px_1px_rgba(60,73,70,0.2)] shrink-0 w-full" data-node-id="0:41" data-name="Background+Shadow">
+                <div className="content-stretch flex gap-[4px] items-center relative shrink-0 w-full" data-node-id="0:42" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold h-[32px] justify-center leading-[0] not-italic relative shrink-0 text-[#e2e2e6] text-[24px] tracking-[-0.24px] w-[25.66px]" data-node-id="0:43">
+                    <p className="leading-[32px]">14</p>
+                  </div>
+                  <div className="h-[15px] relative shrink-0 w-[13.333px]" data-node-id="0:44" data-name="Container">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer1} />
+                  </div>
+                </div>
+                <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="0:46" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[#869490] text-[12px] tracking-[0.48px] w-full" data-node-id="0:47">
+                    <p className="leading-[16px]">Day Streak</p>
+                  </div>
+                </div>
+                <div className="absolute inset-0" data-node-id="0:48" style={{ backgroundImage: "linear-gradient(156.4252937980874deg, rgba(213, 186, 255, 0.1) 0%, rgba(213, 186, 255, 0) 100%)" }} data-name="Gradient" />
+              </div>
+              <div className="bg-[#1e2023] content-stretch flex flex-col items-start justify-center p-[12px] relative rounded-[8px] shrink-0 w-full" data-node-id="0:49" data-name="Background">
+                <div className="absolute bg-[rgba(255,255,255,0)] inset-0 rounded-[8px] shadow-[0px_0px_0px_1px_rgba(60,73,70,0.2)]" data-node-id="0:50" data-name="Overlay+Shadow" />
+                <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="0:51" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold justify-center leading-[0] not-italic relative shrink-0 text-[#e2e2e6] text-[24px] tracking-[-0.24px] w-full" data-node-id="0:52">
+                    <p className="leading-[32px]">4.2h</p>
+                  </div>
+                </div>
+                <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="0:53" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[#869490] text-[12px] tracking-[0.48px] w-full" data-node-id="0:54">
+                    <p className="leading-[16px]">Daily Avg</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full" data-node-id="0:55" data-name="Section - Badge Board">
+          <div className="content-stretch flex items-center justify-between px-[4px] relative shrink-0 w-full" data-node-id="0:56" data-name="Container">
+            <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="0:57" data-name="Heading 3">
+              <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold h-[20px] justify-center leading-[0] not-italic relative shrink-0 text-[#bbcac5] text-[14px] tracking-[1.4px] uppercase w-[116.28px]" data-node-id="0:58">
+                <p className="leading-[20px]">BADGE BOARD</p>
+              </div>
+            </div>
+            <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="0:59" data-name="Container">
+              <div className="flex flex-col font-['Inter:Medium',sans-serif] font-medium h-[16px] justify-center leading-[0] not-italic relative shrink-0 text-[#59dbc7] text-[12px] tracking-[0.48px] w-[49.94px]" data-node-id="0:60">
+                <p className="leading-[16px]">View All</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#1a1c1f] gap-x-[16px] gap-y-[16px] grid grid-cols-[repeat(4,minmax(0,1fr))] grid-rows-[__67.50px_67.50px] p-[12px] relative rounded-[12px] shrink-0 w-full" data-node-id="0:61" data-name="Background">
+            <div className="absolute bg-[rgba(255,255,255,0)] inset-0 rounded-[12px] shadow-[0px_0px_0px_1px_rgba(60,73,70,0.1)]" data-node-id="0:62" data-name="Overlay+Shadow" />
+            <div className="aspect-square bg-[rgba(89,219,199,0.1)] col-1 content-stretch flex items-center justify-center justify-self-stretch relative rounded-[9999px] row-1 shrink-0" data-node-id="0:63" data-name="Unlocked">
+              <div className="absolute bg-[rgba(255,255,255,0)] inset-0 rounded-[9999px] shadow-[0px_0px_0px_2px_rgba(89,219,199,0.4),0px_0px_15px_0px_rgba(89,219,199,0.15)]" data-node-id="0:64" data-name="Unlocked:shadow" />
+              <div className="h-[24.5px] relative shrink-0 w-[18.667px]" data-node-id="0:65" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer2} />
+              </div>
+            </div>
+            <div className="aspect-square bg-[rgba(213,186,255,0.1)] col-2 content-stretch flex items-center justify-center justify-self-stretch relative rounded-[9999px] row-1 shrink-0" data-node-id="0:67" data-name="Overlay">
+              <div className="absolute bg-[rgba(255,255,255,0)] inset-0 rounded-[9999px] shadow-[0px_0px_0px_2px_rgba(213,186,255,0.4),0px_0px_15px_0px_rgba(213,186,255,0.15)]" data-node-id="0:68" data-name="Overlay+Shadow" />
+              <div className="h-[22.167px] relative shrink-0 w-[23.333px]" data-node-id="0:69" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer3} />
+              </div>
+            </div>
+            <div className="aspect-square bg-[rgba(174,198,255,0.1)] col-3 content-stretch flex items-center justify-center justify-self-stretch relative rounded-[9999px] row-1 shrink-0" data-node-id="0:71" data-name="Overlay">
+              <div className="absolute bg-[rgba(255,255,255,0)] inset-0 rounded-[9999px] shadow-[0px_0px_0px_2px_rgba(174,198,255,0.4),0px_0px_15px_0px_rgba(174,198,255,0.15)]" data-node-id="0:72" data-name="Overlay+Shadow" />
+              <div className="h-[25.083px] relative shrink-0 w-[21px]" data-node-id="0:73" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer4} />
+              </div>
+            </div>
+            <div className="aspect-square bg-[#282a2d] border border-[#3c4946] border-dashed col-4 content-stretch flex items-center justify-center justify-self-stretch opacity-50 p-px relative rounded-[9999px] row-1 shrink-0" data-node-id="0:75" data-name="Locked">
+              <div className="h-[21px] relative shrink-0 w-[16px]" data-node-id="0:76" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer5} />
+              </div>
+            </div>
+            <div className="aspect-square bg-[#282a2d] border border-[#3c4946] border-dashed col-1 content-stretch flex items-center justify-center justify-self-stretch opacity-50 p-px relative rounded-[9999px] row-2 shrink-0" data-node-id="0:78" data-name="Background+Border">
+              <div className="h-[21px] relative shrink-0 w-[16px]" data-node-id="0:79" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer5} />
+              </div>
+            </div>
+            <div className="aspect-square bg-[#282a2d] border border-[#3c4946] border-dashed col-2 content-stretch flex items-center justify-center justify-self-stretch opacity-50 p-px relative rounded-[9999px] row-2 shrink-0" data-node-id="0:81" data-name="Background+Border">
+              <div className="h-[21px] relative shrink-0 w-[16px]" data-node-id="0:82" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer5} />
+              </div>
+            </div>
+            <div className="aspect-square bg-[#282a2d] border border-[#3c4946] border-dashed col-3 content-stretch flex items-center justify-center justify-self-stretch opacity-50 p-px relative rounded-[9999px] row-2 shrink-0" data-node-id="0:84" data-name="Background+Border">
+              <div className="h-[21px] relative shrink-0 w-[16px]" data-node-id="0:85" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer5} />
+              </div>
+            </div>
+            <div className="aspect-square bg-[#282a2d] border border-[#3c4946] border-dashed col-4 content-stretch flex items-center justify-center justify-self-stretch opacity-50 p-px relative rounded-[9999px] row-2 shrink-0" data-node-id="0:87" data-name="Background+Border">
+              <div className="h-[21px] relative shrink-0 w-[16px]" data-node-id="0:88" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer5} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full" data-node-id="0:90" data-name="Section - App Settings">
+          <div className="content-stretch flex flex-col items-start pl-[4px] relative shrink-0 w-full" data-node-id="0:91" data-name="Heading 3">
+            <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold justify-center leading-[0] not-italic relative shrink-0 text-[#bbcac5] text-[14px] tracking-[1.4px] uppercase w-full" data-node-id="0:92">
+              <p className="leading-[20px]">APP SETTINGS</p>
+            </div>
+          </div>
+          <div className="bg-[#1e2023] content-stretch flex flex-col items-start relative rounded-[12px] shrink-0 w-full" data-node-id="0:93" data-name="Background">
+            <div className="absolute bg-[rgba(255,255,255,0)] inset-0 rounded-[12px] shadow-[0px_0px_0px_1px_rgba(60,73,70,0.2)]" data-node-id="0:94" data-name="Overlay+Shadow" />
+            <div className="content-stretch flex items-center justify-between min-h-[72px] px-[12px] py-[24px] relative rounded-tl-[12px] rounded-tr-[12px] shrink-0 w-full" data-node-id="0:95" data-name="Language">
+              <div className="content-stretch flex gap-[12px] items-center relative shrink-0" data-node-id="0:96" data-name="Container">
+                <div className="relative shrink-0 size-[20px]" data-node-id="0:97" data-name="Container">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer6} />
+                </div>
+                <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="0:99" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Regular',sans-serif] font-normal h-[24px] justify-center leading-[0] not-italic relative shrink-0 text-[#e2e2e6] text-[16px] w-[74.89px]" data-node-id="0:100">
+                    <p className="leading-[24px]">Language</p>
+                  </div>
+                </div>
+              </div>
+              <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-node-id="0:101" data-name="Container">
+                <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="0:102" data-name="Container">
+                  <div className="flex flex-col font-['Inter:Regular',sans-serif] font-normal h-[24px] justify-center leading-[0] not-italic relative shrink-0 text-[#869490] text-[16px] w-[54.55px]" data-node-id="0:103">
+                    <p className="leading-[24px]">English</p>
+                  </div>
+                </div>
+                <div className="h-[10px] relative shrink-0 w-[6.167px]" data-node-id="0:104" data-name="Container">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer7} />
+                </div>
+              </div>
+            </div>
+            <div className="border-[rgba(60,73,70,0.1)] border-solid border-t content-stretch flex items-center justify-between min-h-[72px] pb-[23.5px] pt-[24.5px] px-[12px] relative shrink-0 w-full" data-node-id="0:106" data-name="Theme">
+              <div className="relative shrink-0" data-node-id="0:107" data-name="Container">
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[12px] items-center relative size-full">
+                  <div className="relative shrink-0 size-[18px]" data-node-id="0:108" data-name="Container">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer8} />
+                  </div>
+                  <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="0:110" data-name="Container">
+                    <div className="flex flex-col font-['Inter:Regular',sans-serif] font-normal h-[24px] justify-center leading-[0] not-italic relative shrink-0 text-[#e2e2e6] text-[16px] w-[92.55px]" data-node-id="0:111">
+                      <p className="leading-[24px]">Dark Theme</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="h-[24px] relative rounded-[9999px] shrink-0 w-[48px]" data-node-id="0:112" data-name="Static Toggle Active">
+                <div aria-hidden="true" className="absolute bg-[#59dbc7] bg-clip-padding border-0 border-[transparent] border-solid inset-0 pointer-events-none rounded-[9999px]" />
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-end pl-[26px] pr-[2px] py-[2px] relative size-full">
+                  <div className="bg-[#003731] relative rounded-[9999px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 size-[20px]" data-node-id="0:113" data-name="Background+Shadow" />
+                </div>
+                <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0px_2px_4px_0px_rgba(0,0,0,0.05)]" />
+              </div>
+            </div>
+            <div className="border-[rgba(60,73,70,0.1)] border-solid border-t content-stretch flex items-center justify-between min-h-[72px] pb-[23.5px] pt-[24.5px] px-[12px] relative rounded-bl-[12px] rounded-br-[12px] shrink-0 w-full" data-node-id="0:114" data-name="Notifications">
+              <div className="relative shrink-0" data-node-id="0:115" data-name="Container">
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[12px] items-center relative size-full">
+                  <div className="h-[20.05px] relative shrink-0 w-[20px]" data-node-id="0:116" data-name="Container">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer9} />
+                  </div>
+                  <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="0:118" data-name="Container">
+                    <div className="flex flex-col font-['Inter:Regular',sans-serif] font-normal h-[24px] justify-center leading-[0] not-italic relative shrink-0 text-[#e2e2e6] text-[16px] w-[130.28px]" data-node-id="0:119">
+                      <p className="leading-[24px]">Focus Reminders</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="h-[24px] relative rounded-[9999px] shrink-0 w-[48px]" data-node-id="0:120" data-name="Static Toggle Active">
+                <div aria-hidden="true" className="absolute bg-[#59dbc7] bg-clip-padding border-0 border-[transparent] border-solid inset-0 pointer-events-none rounded-[9999px]" />
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-end pl-[26px] pr-[2px] py-[2px] relative size-full">
+                  <div className="bg-[#003731] relative rounded-[9999px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] shrink-0 size-[20px]" data-node-id="0:121" data-name="Background+Shadow" />
+                </div>
+                <div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0px_2px_4px_0px_rgba(0,0,0,0.05)]" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col items-start pt-[12px] relative shrink-0 w-full" data-node-id="0:122" data-name="Logout Button:margin">
+          <div className="border border-[rgba(255,180,171,0.5)] border-solid content-stretch flex gap-[8px] items-center justify-center px-px py-[17px] relative rounded-[8px] shrink-0 w-full" data-node-id="0:123" data-name="Logout Button">
+            <div className="relative shrink-0 size-[15px]" data-node-id="0:124" data-name="Container">
+              <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer10} />
+            </div>
+            <div className="flex flex-col font-['Inter:Semi_Bold',sans-serif] font-semibold h-[20px] justify-center leading-[0] not-italic relative shrink-0 text-[#ffb4ab] text-[14px] text-center tracking-[0.7px] uppercase w-[63.28px]" data-node-id="0:126">
+              <p className="leading-[20px]">LOGOUT</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="absolute bottom-[23.5px] content-stretch flex items-center justify-between left-0 pl-[16px] pr-[15.98px] w-[390px]" data-node-id="0:140" data-name="BottomNavBar">
+        <div className="backdrop-blur-[6px] bg-[rgba(40,42,45,0.9)] border border-[#333538] border-solid content-stretch flex flex-[1_0_0] items-center justify-between min-w-px p-[9px] relative rounded-[9999px]" data-node-id="0:141" data-name="Overlay+Border+OverlayBlur">
+          <div className="absolute bg-[rgba(255,255,255,0)] inset-[-1px] rounded-[9999px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" data-node-id="0:142" data-name="Overlay+Shadow" />
+          <div className="relative rounded-[9999px] shrink-0 size-[48px]" data-node-id="0:143" data-name="Link - Home">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+              <div className="h-[18px] relative shrink-0 w-[16px]" data-node-id="0:144" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer11} />
+              </div>
+            </div>
+          </div>
+          <div className="relative rounded-[9999px] shrink-0 size-[48px]" data-node-id="0:146" data-name="Link - Calendar">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+              <div className="h-[20px] relative shrink-0 w-[18px]" data-node-id="0:147" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer12} />
+              </div>
+            </div>
+          </div>
+          <div className="relative rounded-[9999px] shrink-0 size-[48px]" data-node-id="0:149" data-name="Link - Focus">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+              <div className="h-[21px] relative shrink-0 w-[18px]" data-node-id="0:150" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer13} />
+              </div>
+            </div>
+          </div>
+          <div className="relative rounded-[9999px] shrink-0 size-[48px]" data-node-id="0:152" data-name="Link - Collab">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+              <div className="h-[16px] relative shrink-0 w-[22px]" data-node-id="0:153" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer14} />
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#59dbc7] h-[48px] relative rounded-[9999px] shrink-0" data-node-id="0:155" data-name="Link - Profile (Active)">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center px-[24px] relative size-full">
+              <div className="relative shrink-0 size-[16px]" data-node-id="0:156" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer15} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="backdrop-blur-[6px] bg-[rgba(40,42,45,0.9)] border border-[#333538] border-solid content-stretch flex items-center justify-center p-px relative rounded-[9999px] shrink-0 size-[64px]" data-node-id="0:158" data-name="Add Button">
+          <div className="-translate-y-1/2 absolute bg-[rgba(255,255,255,0)] left-[-1px] rounded-[9999px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] size-[64px] top-1/2" data-node-id="0:159" data-name="Add Button:shadow" />
+          <div className="relative shrink-0 size-[18.667px]" data-node-id="0:160" data-name="Container">
+            <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer16} />
+          </div>
+        </div>
+      </div>
+      <div className="absolute bg-[#020617] border-[rgba(30,41,59,0.5)] border-b border-solid content-stretch drop-shadow-[0px_1px_1px_rgba(19,78,74,0.1)] flex h-[64px] items-center justify-between left-0 pb-px px-[24px] top-0 w-[390px]" data-node-id="16:44" data-name="Header - TopAppBar">
+        <div className="relative shrink-0" data-node-id="16:45" data-name="Container">
+          <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[16px] items-center relative size-full">
+            <div className="content-stretch flex flex-col items-center justify-center p-[8px] relative rounded-[9999px] shrink-0" data-node-id="16:46" data-name="Button">
+              <div className="h-[20px] relative shrink-0 w-[18px]" data-node-id="16:47" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer17} />
+              </div>
+            </div>
+            <div className="content-stretch flex flex-col items-start relative shrink-0" data-node-id="16:49" data-name="Container">
+              <div className="flex flex-col font-['Nimbus_Sans:Bold',sans-serif] h-[28px] justify-center leading-[0] not-italic relative shrink-0 text-[#2dd4bf] text-[20px] tracking-[-1px] w-[37.2px]" data-node-id="16:50">
+                <p className="leading-[28px]">BFY</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="relative shrink-0" data-node-id="16:51" data-name="Container">
+          <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[16px] items-center relative size-full">
+            <div className="content-stretch flex flex-col items-center justify-center p-[8px] relative rounded-[9999px] shrink-0" data-node-id="16:52" data-name="Button">
+              <div className="h-[20px] relative shrink-0 w-[16px]" data-node-id="16:53" data-name="Container">
+                <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgContainer18} />
+              </div>
+            </div>
+            <div className="border border-[#869490] border-solid content-stretch flex flex-col items-start justify-center overflow-clip p-px relative rounded-[9999px] shrink-0 size-[32px]" data-node-id="16:55" data-name="Border">
+              <div className="flex-[1_0_0] min-h-px relative w-full" data-node-id="16:56" data-name="User profile avatar">
+                <div className="absolute bg-clip-padding border-0 border-[transparent] border-solid inset-0 overflow-hidden pointer-events-none">
+                  <img alt="" className="absolute left-0 max-w-none size-full top-0" src={imgUserProfileAvatar} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
