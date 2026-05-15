@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { connectDB } from "@config/database";
+import { connectDB, AppDataSource } from "@config/database";
 import { config } from "@config/env";
 import { corsMiddleware } from "@middleware/cors";
 import { securityHeaders, getAllSecurityHeaders } from "@middleware/security-headers";
@@ -24,6 +24,7 @@ import { TelemetryService, PerformanceTimer } from "@services/TelemetryService";
 import { HealthCheckService } from "@services/HealthCheckService";
 import { MetricsCollector, RequestMetrics } from "@services/MetricsCollector";
 import { AlertManager, setupDefaultAlerts } from "@services/AlertManager";
+import gamificationService from "@services/GamificationService";
 
 /**
  * Initialize and configure Elysia server
@@ -125,9 +126,8 @@ const start = async () => {
     // Register database health check
     HealthCheckService.registerComponent("database", async () => {
       try {
-        const ds = require("@config/database").AppDataSource;
-        if (ds && ds.isInitialized) {
-          await ds.query("SELECT 1");
+        if (AppDataSource && AppDataSource.isInitialized) {
+          await AppDataSource.query("SELECT 1");
           return true;
         }
         return false;
@@ -145,12 +145,11 @@ const start = async () => {
 
     // Initialize Gamification data
     logger.info("🎮 Initializing gamification data...");
-    const gamificationService = require("@services/GamificationService").default;
     await gamificationService.initializeRanks();
     logger.info("✅ Gamification data initialized");
 
     const port = config.port;
-    app.listen(port, ({ hostname, port }) => {
+    app.listen({ port, hostname: "0.0.0.0" }, ({ hostname, port }) => {
       logger.info(`✅ Server running at http://${hostname}:${port}`);
       logger.info(`📍 API Prefix: ${config.api.prefix}`);
       logger.info(`🌍 Node Environment: ${config.nodeEnv}`);

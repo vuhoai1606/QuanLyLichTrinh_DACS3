@@ -2,6 +2,7 @@ package com.bfy.schedule_app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bfy.schedule_app.data.remote.model.*
 import com.bfy.schedule_app.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,11 +32,7 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
                     userId = response.user.id
                 )
             } catch (e: Exception) {
-                e.printStackTrace()
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Login failed: ${e.message}"
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }
@@ -52,11 +49,75 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
                     userId = response.user.id
                 )
             } catch (e: Exception) {
-                e.printStackTrace()
-                _uiState.value = _uiState.value.copy(
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    fun googleLogin(googleId: String, email: String, fullName: String, avatarUrl: String? = null) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = repository.googleLogin(googleId, email, fullName, avatarUrl)
+                _uiState.value = AuthUiState(
                     isLoading = false,
-                    error = "Registration failed: ${e.message}"
+                    isAuthenticated = true,
+                    token = response.token,
+                    userId = response.user.id
                 )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    fun forgotPassword(email: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val success = repository.forgotPassword(email)
+                if (success) {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    onSuccess()
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to send OTP")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    fun verifyOtp(email: String, otp: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val success = repository.verifyOtp(email, otp)
+                if (success) {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    onSuccess()
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Invalid OTP")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    fun resetPassword(email: String, otp: String, newPassword: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val success = repository.resetPassword(email, otp, newPassword)
+                if (success) {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    onSuccess()
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to reset password")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }

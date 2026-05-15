@@ -38,10 +38,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,6 +55,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import com.bfy.schedule_app.utils.Localization
+import kotlinx.datetime.*
+import kotlinx.coroutines.launch
 
 
 private data class CategoryOption(val name: String, val color: Color)
@@ -61,38 +67,83 @@ private data class ReminderOption(val key: String, val label: String)
 @Composable
 fun CreateNewItemScreen(
     onDismiss: () -> Unit,
+    onSuccess: () -> Unit = {},
+    initialSchedule: com.bfy.schedule_app.data.remote.model.ScheduleDto? = null,
     modifier: Modifier = Modifier
 ) {
     val viewModel: CreateItemViewModel = viewModel { CreateItemViewModel() }
     val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            viewModel.resetState()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadCategories()
+    }
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
+            onSuccess()
             onDismiss()
         }
     }
 
+    val categories = remember(uiState.categories) {
+        val list = mutableListOf(
+            CategoryOption(Localization.get("study") ?: "Study", Color(0xFFAD7BFF)),
+            CategoryOption(Localization.get("work") ?: "Work", Color(0xFF59DBC7)),
+            CategoryOption(Localization.get("personal") ?: "Personal", Color(0xFFFFD166))
+        )
+        uiState.categories.forEach { cat ->
+            if (list.none { it.name == cat.name }) {
+                list.add(CategoryOption(cat.name, Color(cat.hex_color.removePrefix("#").toLong(16) or 0xFF000000)))
+            }
+        }
+        list
+    }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val segments = listOf("To-do", "Task", "Event")
-    val repeatOptions = listOf("Never", "Daily", "Mon-Fri", "Weekly", "Monthly", "Yearly")
+    val segments = listOf(Localization.get("task"), Localization.get("event"))
+    val repeatOptions = listOf(
+        Localization.get("never"), 
+        Localization.get("daily"), 
+        Localization.get("mon_fri"), 
+        Localization.get("weekly"), 
+        Localization.get("monthly"), 
+        Localization.get("yearly")
+    )
     val taskDateOptions = listOf("Today, 09:00", "Today, 18:00", "Tomorrow, 09:00", "Tomorrow, 18:00")
     val eventTimeOptions = listOf("08:00", "09:00", "10:00", "11:00", "13:00", "15:00", "18:00")
     val customReminderOptions = listOf("2 hours before", "3 hours before", "12 hours before")
     val alarmSounds = listOf("Default", "Bell", "Gentle", "Digital")
     val reminderOptions = listOf(
-        ReminderOption("WHEN_STARTS", "Starts"),
-        ReminderOption("MIN_5", "5m"),
-        ReminderOption("MIN_10", "10m"),
-        ReminderOption("MIN_30", "30m"),
-        ReminderOption("HOUR_1", "1h"),
-        ReminderOption("DAY_1", "1 day"),
-        ReminderOption("WEEK_1", "1 week"),
-        ReminderOption("CUSTOM", "Custom")
+        ReminderOption("WHEN_STARTS", Localization.get("starts")),
+        ReminderOption("MIN_5", Localization.get("min_5")),
+        ReminderOption("MIN_10", Localization.get("min_10")),
+        ReminderOption("MIN_30", Localization.get("min_30")),
+        ReminderOption("HOUR_1", Localization.get("hour_1")),
+        ReminderOption("DAY_1", Localization.get("day_1")),
+        ReminderOption("WEEK_1", Localization.get("week_1")),
+        ReminderOption("CUSTOM", Localization.get("custom"))
     )
 
-    var selectedSegment by remember { mutableStateOf(0) }
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    var selectedSegment by remember { 
+        mutableStateOf(
+            when(initialSchedule?.type) {
+                "TASK" -> 0
+                "EVENT" -> 1
+                else -> 0
+            }
+        ) 
+    }
+    var title by remember { mutableStateOf(initialSchedule?.title ?: "") }
+    var description by remember { mutableStateOf(initialSchedule?.description ?: "") }
+    var setReminder by remember { mutableStateOf(initialSchedule?.start_time != null) }
+    var isAllDay by remember { mutableStateOf(false) } 
     var repeatIndex by remember { mutableStateOf(0) }
     var selectedCategoryIndex by remember { mutableStateOf(0) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
@@ -101,20 +152,9 @@ fun CreateNewItemScreen(
     val categoryColors = listOf(
         Color(0xFFAD7BFF), Color(0xFF59DBC7), Color(0xFF92B4FF), Color(0xFFFF7B7B), Color(0xFFFFD166)
     )
-    val categories = remember {
-        mutableStateListOf(
-            CategoryOption("Study", Color(0xFFAD7BFF)),
-            CategoryOption("Work", Color(0xFF59DBC7)),
-            CategoryOption("Personal", Color(0xFFFFD166))
-        )
-    }
 
-    val todoItems = remember { mutableStateListOf<String>() }
-    var taskStartIndex by remember { mutableStateOf(0) }
-    var taskDeadlineIndex by remember { mutableStateOf(1) }
     var eventStartIndex by remember { mutableStateOf(1) }
     var eventEndIndex by remember { mutableStateOf(2) }
-    var eventAllDay by remember { mutableStateOf(false) }
     val selectedReminderKeys = remember { mutableStateListOf<String>() }
     var customReminderIndex by remember { mutableStateOf(0) }
     var alarmEnabled by remember { mutableStateOf(false) }
@@ -129,17 +169,9 @@ fun CreateNewItemScreen(
     fun isDirty(): Boolean {
         return title.isNotBlank() ||
             description.isNotBlank() ||
-            todoItems.isNotEmpty() ||
             repeatIndex != 0 ||
             selectedCategoryIndex != 0 ||
-            taskStartIndex != 0 ||
-            taskDeadlineIndex != 1 ||
-            eventStartIndex != 1 ||
-            eventEndIndex != 2 ||
-            eventAllDay ||
-            selectedReminderKeys.isNotEmpty() ||
-            alarmEnabled ||
-            countdownEnabled
+            setReminder
     }
 
     fun validate(): Boolean {
@@ -147,19 +179,13 @@ fun CreateNewItemScreen(
         taskTimeError = null
         eventTimeError = null
 
-        if (selectedSegment == 0) {
-            val hasTodoValue = title.isNotBlank() || todoItems.any { it.isNotBlank() }
-            if (!hasTodoValue) {
-                titleError = "Title is required."
-                return false
-            }
-        } else if (title.isBlank()) {
-            titleError = "Title is required."
+        if (title.isBlank()) {
+            titleError = Localization.get("title_required")
             return false
         }
 
         if (title.length > 100) {
-            titleError = "Title must be at most 100 characters."
+            titleError = Localization.get("title_too_long")
             return false
         }
 
@@ -167,13 +193,8 @@ fun CreateNewItemScreen(
             return false
         }
 
-        if (selectedSegment == 1 && taskDeadlineIndex < taskStartIndex) {
-            taskTimeError = "Deadline must be after start date."
-            return false
-        }
-
-        if (selectedSegment == 2 && eventEndIndex <= eventStartIndex) {
-            eventTimeError = "End time must be later than start time."
+        if (setReminder && eventStartIndex >= eventEndIndex) {
+            // Minimal validation for unified time
             return false
         }
 
@@ -266,47 +287,21 @@ fun CreateNewItemScreen(
                     label = Localization.get("title"),
                     value = title,
                     onValueChange = { title = it },
-                    placeholder = "What needs to be done?",
+                    placeholder = Localization.get("what_needs_done"),
                     isError = titleError != null
                 )
                 titleError?.let {
                     Text(text = it, color = Color(0xFFFF7B7B), fontSize = 12.sp)
                 }
 
-                if (selectedSegment == 0) {
-                    TextButton(
-                        onClick = {
-                            if (title.isNotBlank()) {
-                                todoItems.add(title.trim())
-                                title = ""
-                                titleError = null
-                            } else {
-                                todoItems.add("")
-                            }
-                        }
-                    ) {
-                        Text(Localization.get("add_todo"), color = Color(0xFF59DBC7))
-                    }
-                    todoItems.forEachIndexed { index, item ->
-                        FormTextField(
-                            label = "To-do ${index + 1}",
-                            value = item,
-                            onValueChange = { todoItems[index] = it },
-                            placeholder = "Enter to-do item"
-                        )
-                    }
-                }
-
-                if (selectedSegment == 1 || selectedSegment == 2) {
-                    FormTextField(
-                        label = Localization.get("description"),
-                        value = description,
-                        onValueChange = { description = it },
-                        placeholder = "Add details...",
-                        singleLine = false,
-                        minLines = 4
-                    )
-                }
+                FormTextField(
+                    label = Localization.get("description"),
+                    value = description,
+                    onValueChange = { description = it },
+                    placeholder = Localization.get("add_details"),
+                    singleLine = false,
+                    minLines = 4
+                )
 
                 var categoryExpanded by remember { mutableStateOf(false) }
                 Box {
@@ -344,95 +339,55 @@ fun CreateNewItemScreen(
                     }
                 }
 
-                if (selectedSegment == 1 || selectedSegment == 2) {
-                    var repeatExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        FormSelectorRow(
-                            label = "Repeat",
-                            value = repeatOptions[repeatIndex],
-                            onClick = { repeatExpanded = true }
-                        )
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = repeatExpanded,
-                            onDismissRequest = { repeatExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1E2023))
-                        ) {
-                            repeatOptions.forEachIndexed { index, option ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(option, color = Color.White) },
-                                    onClick = {
-                                        repeatIndex = index
-                                        repeatExpanded = false
-                                    }
-                                )
-                            }
+                var repeatExpanded by remember { mutableStateOf(false) }
+                Box {
+                    FormSelectorRow(
+                        label = Localization.get("repeat"),
+                        value = repeatOptions[repeatIndex],
+                        onClick = { repeatExpanded = true }
+                    )
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = repeatExpanded,
+                        onDismissRequest = { repeatExpanded = false },
+                        modifier = Modifier.background(Color(0xFF1E2023))
+                    ) {
+                        repeatOptions.forEachIndexed { index, option ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(option, color = Color.White) },
+                                onClick = {
+                                    repeatIndex = index
+                                    repeatExpanded = false
+                                }
+                            )
                         }
                     }
                 }
 
-                if (selectedSegment == 1) {
-                    var startExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        FormSelectorRow(
-                            label = "Start date",
-                            value = taskDateOptions[taskStartIndex],
-                            onClick = { startExpanded = true }
-                        )
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = startExpanded,
-                            onDismissRequest = { startExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1E2023))
-                        ) {
-                            taskDateOptions.forEachIndexed { index, option ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(option, color = Color.White) },
-                                    onClick = {
-                                        taskStartIndex = index
-                                        startExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    
-                    var deadlineExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        FormSelectorRow(
-                            label = "Deadline",
-                            value = taskDateOptions[taskDeadlineIndex],
-                            onClick = { deadlineExpanded = true }
-                        )
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = deadlineExpanded,
-                            onDismissRequest = { deadlineExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1E2023))
-                        ) {
-                            taskDateOptions.forEachIndexed { index, option ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(option, color = Color.White) },
-                                    onClick = {
-                                        taskDeadlineIndex = index
-                                        deadlineExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    taskTimeError?.let {
-                        Text(text = it, color = Color(0xFFFF7B7B), fontSize = 12.sp)
-                    }
-                }
+                FormSwitchRow(
+                    label = Localization.get("set_reminder"),
+                    subtitle = Localization.get("toggle_time_rem"),
+                    checked = setReminder,
+                    onCheckedChange = { setReminder = it }
+                )
 
-                if (selectedSegment == 2) {
+                if (setReminder) {
+                    FormSwitchRow(
+                        label = Localization.get("all_day"),
+                        subtitle = Localization.get("full_day_task_event"),
+                        checked = isAllDay,
+                        onCheckedChange = { isAllDay = it }
+                    )
+
                     var eventStartExpanded by remember { mutableStateOf(false) }
                     Box {
                         FormSelectorRow(
-                            label = "Start time",
+                            label = Localization.get("start_time"),
                             value = eventTimeOptions[eventStartIndex],
-                            onClick = { eventStartExpanded = true }
+                            onClick = { eventStartExpanded = true },
+                            enabled = !isAllDay
                         )
                         androidx.compose.material3.DropdownMenu(
-                            expanded = eventStartExpanded,
+                            expanded = eventStartExpanded && !isAllDay,
                             onDismissRequest = { eventStartExpanded = false },
                             modifier = Modifier.background(Color(0xFF1E2023))
                         ) {
@@ -451,12 +406,13 @@ fun CreateNewItemScreen(
                     var eventEndExpanded by remember { mutableStateOf(false) }
                     Box {
                         FormSelectorRow(
-                            label = "End time",
+                            label = Localization.get("end_time"),
                             value = eventTimeOptions[eventEndIndex],
-                            onClick = { eventEndExpanded = true }
+                            onClick = { eventEndExpanded = true },
+                            enabled = !isAllDay
                         )
                         androidx.compose.material3.DropdownMenu(
-                            expanded = eventEndExpanded,
+                            expanded = eventEndExpanded && !isAllDay,
                             onDismissRequest = { eventEndExpanded = false },
                             modifier = Modifier.background(Color(0xFF1E2023))
                         ) {
@@ -471,12 +427,6 @@ fun CreateNewItemScreen(
                             }
                         }
                     }
-                    FormSwitchRow(
-                        label = "All day",
-                        subtitle = "Turn on for full-day event",
-                        checked = eventAllDay,
-                        onCheckedChange = { eventAllDay = it }
-                    )
 
                     Column(
                         modifier = Modifier
@@ -484,11 +434,12 @@ fun CreateNewItemScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF1A1C1F))
                             .border(1.dp, Color(0xFF1E2023), RoundedCornerShape(12.dp))
+                            .alpha(if (!isAllDay) 1f else 0.5f)
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Reminder multi-select",
+                            text = Localization.get("reminder_options_label"),
                             color = Color(0xFFBBCAC5),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
@@ -506,7 +457,7 @@ fun CreateNewItemScreen(
                                                 if (selected) Color.Transparent else Color(0xFF3C4946),
                                                 RoundedCornerShape(20.dp)
                                             )
-                                            .clickable {
+                                            .clickable(enabled = !isAllDay) {
                                                 if (selected) selectedReminderKeys.remove(option.key)
                                                 else selectedReminderKeys.add(option.key)
                                             }
@@ -532,8 +483,8 @@ fun CreateNewItemScreen(
                     }
 
                     FormSwitchRow(
-                        label = "Alarm reminders",
-                        subtitle = "Play sound when reminder triggers",
+                        label = Localization.get("alarm_reminders"),
+                        subtitle = Localization.get("play_sound_rem"),
                         checked = alarmEnabled,
                         onCheckedChange = { alarmEnabled = it },
                         leadingIcon = {
@@ -555,10 +506,11 @@ fun CreateNewItemScreen(
                     }
 
                     FormSwitchRow(
-                        label = "Countdown reminder",
-                        subtitle = "Enable foreground countdown notification",
+                        label = Localization.get("countdown_reminder"),
+                        subtitle = Localization.get("enable_foreground_countdown"),
                         checked = countdownEnabled,
-                        onCheckedChange = { countdownEnabled = it }
+                        onCheckedChange = { countdownEnabled = it },
+                        enabled = !isAllDay
                     )
 
                     eventTimeError?.let {
@@ -572,36 +524,120 @@ fun CreateNewItemScreen(
                     Text(uiState.error!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
                 }
 
-                Button(
-                    onClick = {
-                        if (validate()) {
-                            viewModel.createItem(
-                                title = title,
-                                description = description,
-                                type = segments[selectedSegment].uppercase(),
-                                startTime = if (selectedSegment == 2) "2026-05-11T${eventTimeOptions[eventStartIndex]}:00.000Z" else null,
-                                endTime = if (selectedSegment == 2) "2026-05-11T${eventTimeOptions[eventEndIndex]}:00.000Z" else null
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (initialSchedule != null) {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    try {
+                                        com.bfy.schedule_app.data.repository.AppRepository().deleteSchedule(initialSchedule.id)
+                                        onSuccess()
+                                        onDismiss()
+                                    } catch (e: Exception) {
+                                        // Handle error
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7B7B)),
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = !uiState.isLoading
+                        ) {
+                            Text(
+                                text = Localization.get("delete"),
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF59DBC7)),
-                    shape = RoundedCornerShape(8.dp),
-                    enabled = !uiState.isLoading
-                ) {
-                    val saveKey = when(selectedSegment) {
-                        0 -> "save_todo"
-                        1 -> "save_task"
-                        else -> "save_event"
                     }
-                    Text(
-                        text = if (uiState.isLoading) "Saving..." else Localization.get(saveKey),
-                        color = Color(0xFF003731),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+
+                    Button(
+                        onClick = {
+                            if (validate()) {
+                                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                                val today = now.date
+                                val tomorrow = today.plus(1, DateTimeUnit.DAY)
+                                
+                                fun parseOption(option: String): String {
+                                    val date = if (option.startsWith("Today")) today else tomorrow
+                                    val time = option.substringAfter(", ")
+                                    return "${date}T${time}:00.000Z"
+                                }
+
+                                val startTimeStr = if (setReminder) {
+                                    if (isAllDay) "${today}T00:00:00.000Z"
+                                    else "${today}T${eventTimeOptions[eventStartIndex]}:00.000Z"
+                                } else null
+
+                                val endTimeStr = if (setReminder) {
+                                    if (isAllDay) "${today}T23:59:59.000Z"
+                                    else "${today}T${eventTimeOptions[eventEndIndex]}:00.000Z"
+                                } else null
+
+                                val recurrenceStr = when(repeatIndex) {
+                                    1 -> "Daily"
+                                    3 -> "Weekly"
+                                    4 -> "Monthly"
+                                    else -> "Never"
+                                }
+
+                                if (initialSchedule != null) {
+                                    viewModel.updateItem(
+                                        id = initialSchedule.id,
+                                        title = title,
+                                        description = description,
+                                        type = segments[selectedSegment].uppercase(),
+                                        startTime = startTimeStr,
+                                        endTime = endTimeStr,
+                                        deadline = endTimeStr,
+                                        isAllDay = isAllDay,
+                                        recurrence = recurrenceStr,
+                                        reminders = selectedReminderKeys.toList()
+                                    )
+                                } else {
+                                    viewModel.createItem(
+                                        title = title,
+                                        description = description,
+                                        type = segments[selectedSegment].uppercase(),
+                                        startTime = startTimeStr,
+                                        endTime = endTimeStr,
+                                        deadline = endTimeStr,
+                                        isAllDay = isAllDay,
+                                        recurrence = recurrenceStr,
+                                        reminders = selectedReminderKeys.toList()
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1.5f)
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF59DBC7)),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = !uiState.isLoading
+                    ) {
+                        val label = if (uiState.isLoading) Localization.get("processing") 
+                                    else if (initialSchedule != null) Localization.get("update")
+                                    else {
+                                        val saveKey = when(selectedSegment) {
+                                            0 -> "save_task"
+                                            else -> "save_event"
+                                        }
+                                        Localization.get(saveKey)
+                                    }
+                        Text(
+                            text = label,
+                            color = Color(0xFF003731),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -632,13 +668,13 @@ fun CreateNewItemScreen(
     if (showAddCategoryDialog) {
         AlertDialog(
             onDismissRequest = { showAddCategoryDialog = false },
-            title = { Text("Add category") },
+            title = { Text(Localization.get("add_category_title")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = newCategoryName,
                         onValueChange = { newCategoryName = it },
-                        label = { Text("Category name") },
+                        label = { Text(Localization.get("category_name")) },
                         singleLine = true
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -670,12 +706,12 @@ fun CreateNewItemScreen(
                         showAddCategoryDialog = false
                     }
                 }) {
-                    Text("Add")
+                    Text(Localization.get("add"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddCategoryDialog = false }) {
-                    Text("Cancel")
+                    Text(Localization.get("cancel"))
                 }
             }
         )
@@ -724,9 +760,13 @@ private fun FormSelectorRow(
     label: String,
     value: String,
     onClick: () -> Unit,
-    dotColor: Color? = null
+    dotColor: Color? = null,
+    enabled: Boolean = true
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        modifier = Modifier.alpha(if (enabled) 1f else 0.5f),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(
             text = label,
             color = Color(0xFFBBCAC5),
@@ -739,7 +779,7 @@ private fun FormSelectorRow(
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF1E2023))
                 .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
-                .clickable { onClick() }
+                .clickable(enabled = enabled) { onClick() }
                 .padding(horizontal = 16.dp, vertical = 13.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -767,7 +807,8 @@ private fun FormSwitchRow(
     subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    leadingIcon: (@Composable (() -> Unit))? = null
+    leadingIcon: (@Composable (() -> Unit))? = null,
+    enabled: Boolean = true
 ) {
     Row(
         modifier = Modifier
@@ -775,6 +816,7 @@ private fun FormSwitchRow(
             .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF1A1C1F))
             .border(1.dp, Color(0xFF1E2023), RoundedCornerShape(12.dp))
+            .alpha(if (enabled) 1f else 0.5f)
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -811,6 +853,7 @@ private fun FormSwitchRow(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color(0xFF003731),
                 checkedTrackColor = Color(0xFF59DBC7),

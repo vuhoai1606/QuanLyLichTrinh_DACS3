@@ -44,7 +44,7 @@ fun CalendarScreen() {
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.background)) {
         Spacer(modifier = Modifier.height(24.dp))
-        val currentMonthYear = "${selectedDate.month.name} ${selectedDate.year}"
+        val currentMonthYear = "${Localization.getMonth(selectedDate.month)} ${selectedDate.year}"
         
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),

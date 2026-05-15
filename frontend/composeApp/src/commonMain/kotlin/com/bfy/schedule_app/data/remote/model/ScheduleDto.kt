@@ -15,5 +15,15 @@ data class ScheduleDto(
     val end_time: String? = null,
     val deadline: String? = null,
     val status: String, // "PENDING", "DOING", "DONE"
-    val is_all_day: Boolean = false
+    val is_all_day: Boolean = false,
+    val rrule: String? = null,
+    val is_recurring: Boolean = false,
+    val recurrence_type: String? = null, // "DAILY", "WEEKLY", "MONTHLY"
+    val reminders: List<ReminderDto> = emptyList()
+)
+
+@Serializable
+data class ReminderDto(
+    val trigger_type: String, // "WHEN_STARTS", "MIN_5", "MIN_10", etc.
+    val is_alarm: Boolean = false
 )

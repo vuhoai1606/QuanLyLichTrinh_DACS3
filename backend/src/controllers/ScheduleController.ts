@@ -74,9 +74,11 @@ export class ScheduleController {
     }
 
     try {
+      const finalCreatorId = (creator_id && creator_id !== "") ? creator_id : body.creator_id;
+
       const schedule = await scheduleService.createSchedule({
         ...rest,
-        creator_id,
+        creator_id: finalCreatorId,
         title,
         type,
       });
@@ -246,6 +248,40 @@ export class ScheduleController {
     try {
       const result = await scheduleService.archiveSchedules(user_id, days);
       return successResponse(result, "Schedules archived");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  // Delete schedule
+  async deleteSchedule(scheduleId: string, userId: string) {
+    if (!userId || !scheduleId) {
+      return errorResponse(400, "userId and scheduleId required", "MISSING_FIELDS");
+    }
+
+    try {
+      await scheduleService.deleteSchedule(scheduleId, userId);
+      return successResponse(null, "Schedule deleted successfully");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  // Update schedule
+  async updateSchedule(scheduleId: string, userId: string, body: any) {
+    if (!userId || !scheduleId) {
+      return errorResponse(400, "userId and scheduleId required", "MISSING_FIELDS");
+    }
+
+    try {
+      const result = await scheduleService.updateSchedule(scheduleId, userId, body);
+      return successResponse(result, "Schedule updated successfully");
     } catch (error) {
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);

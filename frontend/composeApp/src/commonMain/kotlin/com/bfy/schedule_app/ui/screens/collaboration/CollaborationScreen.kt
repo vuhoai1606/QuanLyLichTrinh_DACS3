@@ -30,8 +30,12 @@ fun CollaborationScreen(onGroupClick: (String) -> Unit) {
     val viewModel: CollaborationViewModel = viewModel { CollaborationViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     
-    Column(
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newGroupName by remember { mutableStateOf("") }
+    var newGroupDesc by remember { mutableStateOf("") }
+    var currentTab by remember { mutableStateOf(0) } // 0: My Groups, 1: Assigned to me
 
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
@@ -63,19 +67,23 @@ fun CollaborationScreen(onGroupClick: (String) -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(PrimaryColor)
+                    .background(if (currentTab == 0) PrimaryColor else Color.Transparent)
+                    .clickable { currentTab = 0 }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(Localization.get("my_groups"), color = Color(0xFF003731), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(Localization.get("my_groups"), color = if (currentTab == 0) Color(0xFF003731) else TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(if (currentTab == 1) PrimaryColor else Color.Transparent)
+                    .clickable { currentTab = 1 }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(Localization.get("assigned_to_me"), color = TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(Localization.get("assigned_to_me"), color = if (currentTab == 1) Color(0xFF003731) else TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         
@@ -88,51 +96,117 @@ fun CollaborationScreen(onGroupClick: (String) -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(Localization.get("active_groups"), color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    Icon(Icons.Default.Add, contentDescription = "Add Group", tint = PrimaryColor)
+                    Text(
+                        text = if (currentTab == 0) Localization.get("active_groups") else Localization.get("shared_items") ?: "Shared Items",
+                        color = TextPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (currentTab == 0) {
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = "Add Group", 
+                            tint = PrimaryColor,
+                            modifier = Modifier.clip(CircleShape).clickable { showCreateDialog = true }.padding(4.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
             
-            if (uiState.groups.isEmpty()) {
+            if (uiState.groups.isEmpty() && !uiState.isLoading) {
                 item {
                     Text(Localization.get("no_groups"), color = TextSecondary, modifier = Modifier.padding(vertical = 16.dp))
                 }
             }
 
-            items(uiState.groups.size) { index ->
-                val group = uiState.groups[index]
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1E2125))
-                        .clickable { onGroupClick(group.id) }
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(if (index % 2 == 0) Color(0xFFAD7BFF) else Color(0xFF92B4FF)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(group.name.take(2).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(group.name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Updated recently", color = TextSecondary, fontSize = 12.sp)
+            if (uiState.isLoading) {
+                item { CircularProgressIndicator(color = PrimaryColor, modifier = Modifier.padding(vertical = 16.dp)) }
+            }
+
+            if (currentTab == 0) {
+                items(uiState.groups.size) { index ->
+                    val group = uiState.groups[index]
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF1E2125))
+                            .clickable { onGroupClick(group.id) }
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(if (index % 2 == 0) Color(0xFFAD7BFF) else Color(0xFF92B4FF)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(group.name.take(2).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(group.name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Text(Localization.get("updated_recently"), color = TextSecondary, fontSize = 12.sp)
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                items(uiState.sharedSchedules.size) { index ->
+                    val schedule = uiState.sharedSchedules[index]
+                    com.bfy.schedule_app.ui.screens.homedashboard.TimelineCard(
+                        schedule = schedule,
+                        onClick = { }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
         }
+    }
 
+    if (showCreateDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showCreateDialog = false },
+            title = { androidx.compose.material3.Text(Localization.get("add_category_title") ?: "Create New Group") }, // Reusing keys or defaults
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = newGroupName,
+                        onValueChange = { newGroupName = it },
+                        label = { androidx.compose.material3.Text("Group Name") },
+                        singleLine = true
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = newGroupDesc,
+                        onValueChange = { newGroupDesc = it },
+                        label = { androidx.compose.material3.Text("Description (Optional)") },
+                        minLines = 3
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    if (newGroupName.isNotBlank()) {
+                        viewModel.createGroup(newGroupName, newGroupDesc)
+                        showCreateDialog = false
+                        newGroupName = ""
+                        newGroupDesc = ""
+                    }
+                }) {
+                    androidx.compose.material3.Text(Localization.get("add"))
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showCreateDialog = false }) {
+                    androidx.compose.material3.Text(Localization.get("cancel"))
+                }
+            }
+        )
     }
 }
 

@@ -173,44 +173,47 @@ export class AuthService {
     const user = await userRepository.findOne({ where: { email: email.toLowerCase() } });
 
     if (!user) {
-      // Don't reveal if email exists for security
-      return { success: true, message: "If email exists, reset link will be sent" };
+      // For security, don't reveal user existence
+      return { success: true, message: "If email exists, an OTP will be sent" };
     }
 
-    const resetToken = jwt.sign(
-      { userId: user.id, type: "password_reset" },
-      config.jwt.secret,
-      { expiresIn: "1h" }
-    );
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    user.password_reset_token = resetToken;
-    user.password_reset_expires = new Date(Date.now() + 3600000);
+    user.password_reset_token = otp; // Re-using token field for OTP
+    user.password_reset_expires = new Date(Date.now() + 600000); // 10 minutes expiry
     await userRepository.save(user);
+
+    console.log(`📨 OTP for ${email}: ${otp}`); // In real app, send via email
 
     return {
       success: true,
-      message: "Password reset email sent",
-      resetToken, // In real app, send via email
+      message: "OTP sent to your email",
+      otp, // Sending OTP in response for demo purposes (In production, only via email)
     };
   }
 
-  async resetPassword(resetToken: string, newPassword: string): Promise<any> {
-    try {
-      const decoded = jwt.verify(resetToken, config.jwt.secret) as any;
-      if (decoded.type !== "password_reset") {
-        throw new AppError(401, "Invalid reset token", "INVALID_TOKEN");
-      }
-    } catch (error) {
-      throw new AppError(401, "Reset token expired", "TOKEN_EXPIRED");
-    }
-
+  async verifyOtp(email: string, otp: string): Promise<any> {
     const userRepository = AppDataSource.getRepository("User");
     const user = await userRepository.findOne({
-      where: { password_reset_token: resetToken },
+      where: { email: email.toLowerCase(), password_reset_token: otp },
     });
 
     if (!user || !user.password_reset_expires || user.password_reset_expires < new Date()) {
-      throw new AppError(401, "Reset token expired or invalid", "INVALID_TOKEN");
+      throw new AppError(401, "Invalid or expired OTP", "INVALID_OTP");
+    }
+
+    return { success: true, message: "OTP verified successfully" };
+  }
+
+  async resetPassword(email: string, otp: string, newPassword: string): Promise<any> {
+    const userRepository = AppDataSource.getRepository("User");
+    const user = await userRepository.findOne({
+      where: { email: email.toLowerCase(), password_reset_token: otp },
+    });
+
+    if (!user || !user.password_reset_expires || user.password_reset_expires < new Date()) {
+      throw new AppError(401, "Invalid or expired OTP", "INVALID_OTP");
     }
 
     const passwordValidation = validatePassword(newPassword);

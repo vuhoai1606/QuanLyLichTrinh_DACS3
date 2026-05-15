@@ -1,7 +1,4 @@
 import { Elysia } from "elysia";
-import collaborationController from "@controllers/CollaborationController";
-
-import { Elysia } from "elysia";
 import { AuthContext, authMiddleware } from "@middleware/auth";
 import { errorResponse } from "@utils/errors";
 import { extractToken, verifyToken } from "@utils/jwt";

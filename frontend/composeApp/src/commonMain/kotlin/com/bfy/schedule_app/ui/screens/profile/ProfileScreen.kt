@@ -26,12 +26,12 @@ import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.viewmodel.ProfileViewModel
 import com.bfy.schedule_app.ui.viewmodel.AuthViewModel
 import com.bfy.schedule_app.ui.theme.*
+import com.bfy.schedule_app.data.remote.model.*
 import com.bfy.schedule_app.utils.Localization
 import com.bfy.schedule_app.utils.SettingsManager
 import com.bfy.schedule_app.utils.Language
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
-
 
 @Composable
 fun ProfileScreen(onLogout: () -> Unit = {}) {
@@ -78,7 +78,6 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Avatar Container with gradient border
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
@@ -101,7 +100,7 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                         
                         Column {
                             Text(
-                                text = if (uiState.isLoading) "Loading..." else (user?.full_name ?: "Unknown User"),
+                                text = if (uiState.isLoading) Localization.get("loading") else (user?.full_name ?: Localization.get("unknown_user")),
                                 color = Color(0xFFE2E2E6),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -117,33 +116,29 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                                 Text(user?.current_rank?.uppercase() ?: "ROOKIE", color = Color(0xFFAD7BFF), fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
                             }
                         }
-
                     }
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Level and EXP
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        val level = (user?.total_exp ?: 0) / 100
-                        val expInLevel = (user?.total_exp ?: 0) % 100
-                        val nextLevelExp = 100
+                        val level = ((user?.total_exp ?: 0) / 1000) + 1
+                        val expInLevel = (user?.total_exp ?: 0) % 1000
+                        val nextLevelExp = 1000
                         
-                        Text("LVL $level", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp)
+                        Text("${Localization.get("lvl")} $level", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp)
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text("$expInLevel", color = Color(0xFF59DBC7), fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("/ $nextLevelExp EXP", color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
+                            Text("/ $nextLevelExp ${Localization.get("exp")}", color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
                         }
                     }
 
-                    
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    // Progress Bar
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -151,8 +146,8 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                             .clip(RoundedCornerShape(50))
                             .background(Color(0x1A59DBC7))
                     ) {
-                        val expInLevel = (user?.total_exp ?: 0) % 100
-                        val progress = expInLevel.toFloat() / 100f
+                        val expInLevel = (user?.total_exp ?: 0) % 1000
+                        val progress = expInLevel.toFloat() / 1000f
                         
                         Box(
                             modifier = Modifier
@@ -162,20 +157,17 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                                 .background(Brush.horizontalGradient(listOf(Color(0xFF59DBC7), Color(0xFFD5BAFF))))
                         )
                     }
-
                 }
             }
         }
         
         item { Spacer(modifier = Modifier.height(24.dp)) }
         
-        // Section - Focus Stats (Bento Layout)
         item {
             Text(Localization.get("focus_stats"), color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp, modifier = Modifier.padding(start = 4.dp))
             Spacer(modifier = Modifier.height(12.dp))
             
             Row(modifier = Modifier.fillMaxWidth().height(156.dp)) {
-                // Total Focus Time Card
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -189,22 +181,20 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                         Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFD5BAFF), modifier = Modifier.size(21.dp))
                         Column {
                             val totalHours = (focusStats?.total_minutes ?: 0) / 60
-                            Text("${totalHours}h", color = Color(0xFFE2E2E6), fontSize = 34.sp, fontWeight = FontWeight.Bold)
-                            Text("Total Focus Time", color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            Text("${totalHours}${Localization.get("hour_1").substringAfter("1").take(1)}", color = Color(0xFFE2E2E6), fontSize = 34.sp, fontWeight = FontWeight.Bold)
+                            Text(Localization.get("total_focus_time"), color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
                 
                 Spacer(modifier = Modifier.width(12.dp))
                 
-                // Stacked Cards
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Total Sessions
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -220,13 +210,12 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF59DBC7), modifier = Modifier.size(16.dp))
                             }
-                            Text("Sessions", color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            Text(Localization.get("sessions"), color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    // Daily Avg
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -240,8 +229,8 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                             val avgHours = if ((focusStats?.completed_sessions ?: 0) > 0) 
                                 (focusStats?.total_minutes?.toFloat() ?: 0f) / 60 / (focusStats?.completed_sessions ?: 1)
                             else 0f
-                            Text("${"%.1f".format(avgHours)}h", color = Color(0xFFE2E2E6), fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Session Avg", color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            Text("${"%.1f".format(avgHours)}${Localization.get("hour_1").substringAfter("1").take(1)}", color = Color(0xFFE2E2E6), fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                            Text(Localization.get("daily_avg"), color = Color(0xFF869490), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -250,7 +239,6 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         
         item { Spacer(modifier = Modifier.height(24.dp)) }
         
-        // Section - Badge Board
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -270,19 +258,20 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                     .border(1.dp, Color(0x1A3C4946), RoundedCornerShape(12.dp))
                     .padding(12.dp)
             ) {
-                Column {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        BadgeItem(filled = true, tint = Color(0xFF59DBC7), bgTint = Color(0x1A59DBC7))
-                        BadgeItem(filled = true, tint = Color(0xFFD5BAFF), bgTint = Color(0x1AD5BAFF))
-                        BadgeItem(filled = true, tint = Color(0xFFAEC6FF), bgTint = Color(0x1AAEC6FF))
-                        BadgeItem(filled = false, tint = Color.Gray, bgTint = Color(0xFF282A2D))
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        BadgeItem(filled = false, tint = Color.Gray, bgTint = Color(0xFF282A2D))
-                        BadgeItem(filled = false, tint = Color.Gray, bgTint = Color(0xFF282A2D))
-                        BadgeItem(filled = false, tint = Color.Gray, bgTint = Color(0xFF282A2D))
-                        BadgeItem(filled = false, tint = Color.Gray, bgTint = Color(0xFF282A2D))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (uiState.badges.isEmpty()) {
+                        Text(Localization.get("no_notifications") ?: "No badges yet", color = Color.Gray, fontSize = 12.sp)
+                    } else {
+                        uiState.badges.take(4).forEach { badge ->
+                            BadgeItem(
+                                filled = badge.unlocked_at != null,
+                                tint = if (badge.unlocked_at != null) Color(0xFF59DBC7) else Color.Gray,
+                                bgTint = if (badge.unlocked_at != null) Color(0x1A59DBC7) else Color(0xFF282A2D)
+                            )
+                        }
                     }
                 }
             }
@@ -290,13 +279,10 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         
         item { Spacer(modifier = Modifier.height(24.dp)) }
         
-        // Section - App Settings
         item {
             Text(Localization.get("app_settings"), color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp, modifier = Modifier.padding(start = 4.dp))
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Using global SettingsManager
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -309,7 +295,9 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                     value = Localization.currentLanguage.label, 
                     icon = Icons.Default.Language,
                     onClick = {
-                        Localization.currentLanguage = if (Localization.currentLanguage == Language.ENGLISH) Language.VIETNAMESE else Language.ENGLISH
+                        val newLang = if (Localization.currentLanguage == Language.ENGLISH) Language.VIETNAMESE else Language.ENGLISH
+                        Localization.currentLanguage = newLang
+                        viewModel.updateSettings(mapOf("language" to newLang.code))
                     }
                 )
                 Divider(color = Color(0x1A3C4946), thickness = 1.dp)
@@ -317,7 +305,10 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                     title = Localization.get("dark_theme"), 
                     checked = SettingsManager.isDarkTheme, 
                     icon = Icons.Default.Settings, 
-                    onCheckedChange = { SettingsManager.isDarkTheme = it }
+                    onCheckedChange = { 
+                        SettingsManager.isDarkTheme = it 
+                        viewModel.updateSettings(mapOf("theme" to if (it) "DARK" else "LIGHT"))
+                    }
                 )
                 Divider(color = Color(0x1A3C4946), thickness = 1.dp)
                 SettingToggleRow(
@@ -326,10 +317,10 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                     icon = Icons.Default.Notifications, 
                     onCheckedChange = { 
                         if (!SettingsManager.notificationsEnabled) {
-                            // Trigger mock activity
-                            SettingsManager.notificationMessage = "BFY: You have 3 tasks due today!"
+                            SettingsManager.notificationMessage = Localization.get("tasks_due_today")
                         }
                         SettingsManager.notificationsEnabled = it
+                        viewModel.updateSettings(mapOf("notifications_enabled" to it))
                     }
                 )
                 Divider(color = Color(0x1A3C4946), thickness = 1.dp)
@@ -344,7 +335,6 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         
         item { Spacer(modifier = Modifier.height(24.dp)) }
         
-        // Logout Button
         item {
             Box(
                 modifier = Modifier

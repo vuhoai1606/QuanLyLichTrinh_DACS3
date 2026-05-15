@@ -26,16 +26,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.theme.*
-import com.bfy.schedule_app.utils.Localization
+import com.bfy.schedule_app.data.remote.model.*
 import com.bfy.schedule_app.ui.viewmodel.FocusViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.bfy.schedule_app.utils.Localization
 
 
 @Composable
-fun FocusModeScreen() {
-    val viewModel: FocusViewModel = viewModel { FocusViewModel() }
+fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Detect when app goes to background or returns
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // If user returns to app and it was running, show confirmation
+                if (uiState.isRunning) {
+                    viewModel.triggerExitConfirmation()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Handle system back button (e.g. trying to exit app)
+    com.bfy.schedule_app.BackHandlerWrapper(enabled = uiState.isRunning) {
+        viewModel.triggerExitConfirmation()
+    }
     
     Box(
 
@@ -74,7 +99,7 @@ fun FocusModeScreen() {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "${Localization.get("today_goal")}: 4 Hrs",
+                    text = "${Localization.get("today_focus") ?: "Today"}: ${uiState.stats?.today_minutes ?: 0} ${Localization.get("mins") ?: "mins"}",
                     color = Color(0xFFBBCAC5),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
@@ -89,11 +114,10 @@ fun FocusModeScreen() {
                     .size(288.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Ambient Glow
+                // Ambient Glow (Simplified)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(32.dp)
                         .background(Color(0x0D59DBC7), CircleShape)
                 )
 
@@ -146,7 +170,7 @@ fun FocusModeScreen() {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = Localization.get("month").uppercase(), // Using month as placeholder or similar
+                            text = Localization.get("minutes_label").uppercase(),
                             color = Color(0xFFBBCAC5),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
@@ -164,7 +188,17 @@ fun FocusModeScreen() {
                         .shadow(8.dp, RoundedCornerShape(percent = 50))
                         .clip(RoundedCornerShape(percent = 50))
                         .background(Color(0xFF59DBC7))
-                        .clickable { viewModel.toggleTimer() }
+                        .clickable { 
+                            if (!uiState.isRunning) {
+                                viewModel.confirmStartFocus() 
+                            } else {
+                                // If running, we might want to pause or show exit confirmation?
+                                // User said "k thể click vào cái khác", but usually pause is allowed.
+                                // However, they said "k thể chuyển sang các tab khác", "chỉ ở trog đó khi thời gian đó nó kết thúc".
+                                // If they want to pause, they can.
+                                viewModel.onStartFocusClick()
+                            }
+                        }
                         .padding(vertical = 16.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -236,6 +270,32 @@ fun FocusModeScreen() {
                 }
             }
 
+
+        }
+
+
+        if (uiState.showExitConfirmation) {
+            AlertDialog(
+                onDismissRequest = { viewModel.cancelExitFocus() },
+                title = { Text(text = Localization.get("focus_stop_title"), fontWeight = FontWeight.Bold) },
+                text = { Text(text = Localization.get("focus_stop_msg")) },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.confirmExitFocus() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4D4D))
+                    ) {
+                        Text(Localization.get("focus_stop_btn"), color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.cancelExitFocus() }) {
+                        Text(Localization.get("focus_stay_btn"), color = Color.Gray)
+                    }
+                },
+                containerColor = Color(0xFF1E2023),
+                titleContentColor = Color.White,
+                textContentColor = Color(0xFFBBCAC5)
+            )
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.bfy.schedule_app
 
+import androidx.compose.runtime.Composable
 import platform.UIKit.UIDevice
 
 class IOSPlatform : Platform {
@@ -7,3 +8,8 @@ class IOSPlatform : Platform {
 }
 
 actual fun getPlatform(): Platform = IOSPlatform()
+
+@Composable
+actual fun BackHandlerWrapper(enabled: Boolean, onBack: () -> Unit) {
+    // No-op for iOS
+}

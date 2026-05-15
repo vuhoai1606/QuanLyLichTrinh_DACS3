@@ -121,6 +121,7 @@ export const ScheduleSchema = new EntitySchema({
     deadline: { type: "timestamp", nullable: true },
     is_all_day: { type: "boolean", default: false },
     rrule: { type: "text", nullable: true },
+    is_countdown_enabled: { type: "boolean", default: false },
     created_at: { type: "timestamp", createDate: true },
     updated_at: { type: "timestamp", updateDate: true },
   },
@@ -150,6 +151,11 @@ export const ScheduleSchema = new EntitySchema({
     assignments: {
       type: "one-to-many",
       target: "ScheduleAssignment",
+      inverseSide: "schedule",
+    },
+    collaborators: {
+      type: "one-to-many",
+      target: "TaskCollaborator",
       inverseSide: "schedule",
     },
   },
@@ -373,6 +379,7 @@ export const TaskCollaboratorSchema = new EntitySchema({
     schedule: {
       type: "many-to-one",
       target: "Schedule",
+      inverseSide: "collaborators",
       joinColumn: { name: "schedule_id" },
       onDelete: "CASCADE",
     },

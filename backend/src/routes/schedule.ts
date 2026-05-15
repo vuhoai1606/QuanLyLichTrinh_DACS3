@@ -27,7 +27,8 @@ export const scheduleRoutes = new Elysia({ prefix: "/schedule" })
   )
   .post(
     "/",
-    async (ctx: AuthContext, { body }: { body: any }) => {
+    async (ctx: AuthContext & { body: any }) => {
+      const { body } = ctx;
       const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
       if (!token) {
         return errorResponse(401, "Missing authorization token", "MISSING_TOKEN");
@@ -60,4 +61,16 @@ export const scheduleRoutes = new Elysia({ prefix: "/schedule" })
   .post("/:id/clone", async ({ params, query }: { params: any; query: any }) => scheduleController.cloneSchedule(params.id, query.user_id), { tags: ["Schedule"] })
   .put("/:id/status", async ({ params, body }: { params: any; body: any }) => scheduleController.updateStatus(params.id, body), { tags: ["Schedule"] })
   .post("/create/:type", async ({ params, body }: { params: any; body: any }) => scheduleController.createSchedule({ ...body, type: params.type }), { tags: ["Schedule"] })
-  .get("/:id", async ({ params }: { params: any }) => scheduleController.getScheduleById(params.id), { tags: ["Schedule"] });
+  .get("/:id", async ({ params }: { params: any }) => scheduleController.getScheduleById(params.id), { tags: ["Schedule"] })
+  .delete("/:id", async (ctx: AuthContext & { params: any }) => {
+    const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
+    const payload = verifyToken(token!);
+    const userId = (payload as any).userId;
+    return scheduleController.deleteSchedule(ctx.params.id, userId);
+  }, { tags: ["Schedule"] })
+  .put("/:id", async (ctx: AuthContext & { params: any; body: any }) => {
+    const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
+    const payload = verifyToken(token!);
+    const userId = (payload as any).userId;
+    return scheduleController.updateSchedule(ctx.params.id, userId, ctx.body);
+  }, { tags: ["Schedule"] });

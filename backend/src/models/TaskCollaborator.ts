@@ -16,7 +16,7 @@ export class TaskCollaborator {
   @CreateDateColumn({ type: "timestamp" })
   added_at: Date;
 
-  @ManyToOne(() => Schedule, { onDelete: "CASCADE" })
+  @ManyToOne(() => Schedule, (schedule) => schedule.collaborators, { onDelete: "CASCADE" })
   @JoinColumn({ name: "schedule_id" })
   schedule: Schedule;
 

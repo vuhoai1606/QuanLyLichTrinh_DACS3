@@ -63,6 +63,11 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     { tags: ["Auth"] }
   )
   .post(
+    "/verify-otp",
+    async ({ body }: { body: any }) => authController.verifyOtp(body),
+    { tags: ["Auth"] }
+  )
+  .post(
     "/refresh",
     async ({ body }: { body: any }) => authController.refreshToken(body),
     { tags: ["Auth"] }

@@ -3,11 +3,9 @@ package com.bfy.schedule_app.data.remote.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class FocusSessionDto(
+data class CategoryDto(
     val id: String,
     val user_id: String,
-    val duration_minutes: Int,
-    val status: String,
-    val exp_earned: Int,
-    val created_at: String
+    val name: String,
+    val hex_color: String
 )

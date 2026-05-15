@@ -13,13 +13,19 @@ import com.bfy.schedule_app.ui.screens.signin.SignInScreen
 fun AppNavigation() {
     var isAuthenticated by remember { mutableStateOf(false) }
     var showSignIn by remember { mutableStateOf(true) }
+    var showForgotPassword by remember { mutableStateOf(false) }
 
     if (isAuthenticated) {
         HomeDashboardScreen(onLogout = { isAuthenticated = false })
+    } else if (showForgotPassword) {
+        com.bfy.schedule_app.ui.screens.forgotpassword.ForgotPasswordScreen(
+            onBackToLogin = { showForgotPassword = false }
+        )
     } else if (showSignIn) {
         SignInScreen(
             onSignIn = { isAuthenticated = true },
-            onSignUpClick = { showSignIn = false }
+            onSignUpClick = { showSignIn = false },
+            onForgotPasswordClick = { showForgotPassword = true }
         )
     } else {
         AuthenticationScreen(

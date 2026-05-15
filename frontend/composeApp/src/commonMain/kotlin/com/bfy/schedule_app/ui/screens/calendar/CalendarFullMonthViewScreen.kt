@@ -36,7 +36,7 @@ fun CalendarFullMonthViewScreen(viewModel: CalendarViewModel) {
     ) {
         item { WeekDaysHeader() }
         item { Spacer(modifier = Modifier.height(8.dp)) }
-        item { MonthGrid(selectedDate = selectedDate, onDateSelected = { viewModel.onDateSelected(it) }) }
+        item { MonthGrid(selectedDate = selectedDate, schedules = uiState.schedules, onDateSelected = { viewModel.onDateSelected(it) }) }
         item { Spacer(modifier = Modifier.height(24.dp)) }
         item { AgendaSection(selectedDate, uiState.schedules) }
 
@@ -47,14 +47,14 @@ fun CalendarFullMonthViewScreen(viewModel: CalendarViewModel) {
 @Composable
 fun WeekDaysHeader() {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN").forEach { day ->
-            Text(day, color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), style = androidx.compose.ui.text.TextStyle(textAlign = androidx.compose.ui.text.style.TextAlign.Center))
+        listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY).forEach { day ->
+            Text(com.bfy.schedule_app.utils.Localization.getDayOfWeek(day).uppercase(), color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), style = androidx.compose.ui.text.TextStyle(textAlign = androidx.compose.ui.text.style.TextAlign.Center))
         }
     }
 }
 
 @Composable
-fun MonthGrid(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit) {
+fun MonthGrid(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>, onDateSelected: (LocalDate) -> Unit) {
     val firstDayOfMonth = LocalDate(selectedDate.year, selectedDate.month, 1)
     val daysInMonth = when (selectedDate.month) {
         Month.FEBRUARY -> if (selectedDate.year % 4 == 0) 29 else 28
@@ -92,7 +92,11 @@ fun MonthGrid(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit) {
                                     fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
                                 )
                                 // Indicator dots
-                                if (dayNum % 5 == 0) {
+                                val hasSchedules = schedules.any {
+                                    it.start_time?.contains(LocalDate(selectedDate.year, selectedDate.month, dayNum).toString()) == true ||
+                                    it.deadline?.contains(LocalDate(selectedDate.year, selectedDate.month, dayNum).toString()) == true
+                                }
+                                if (hasSchedules) {
                                     Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(if (isSelected) TextDark else Color(0xFFAD7BFF)))
                                 }
                             }
@@ -119,8 +123,8 @@ fun AgendaSection(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom
         ) {
-            Text("${selectedDate.month} ${selectedDate.dayOfMonth}", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            Text("${daySchedules.size} Items", color = TextSecondary, fontSize = 14.sp)
+            Text("${com.bfy.schedule_app.utils.Localization.getMonth(selectedDate.month)} ${selectedDate.dayOfMonth}", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text("${daySchedules.size} ${com.bfy.schedule_app.utils.Localization.get("items")}", color = TextSecondary, fontSize = 14.sp)
         }
         Spacer(modifier = Modifier.height(16.dp))
         

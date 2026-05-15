@@ -200,15 +200,34 @@ export class AuthController {
 
   // Reset password
   async resetPassword(body: any) {
-    const { resetToken, newPassword } = body;
+    const { email, otp, newPassword } = body;
 
-    if (!resetToken || !newPassword) {
-      return errorResponse(400, "Reset token and new password required", "MISSING_FIELDS");
+    if (!email || !otp || !newPassword) {
+      return errorResponse(400, "Email, OTP and new password required", "MISSING_FIELDS");
     }
 
     try {
-      const result = await authService.resetPassword(resetToken, newPassword);
+      const result = await authService.resetPassword(email, otp, newPassword);
       return successResponse(result, "Password reset successfully");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  // Verify OTP
+  async verifyOtp(body: any) {
+    const { email, otp } = body;
+
+    if (!email || !otp) {
+      return errorResponse(400, "Email and OTP required", "MISSING_FIELDS");
+    }
+
+    try {
+      const result = await authService.verifyOtp(email, otp);
+      return successResponse(result, "OTP verified successfully");
     } catch (error) {
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);

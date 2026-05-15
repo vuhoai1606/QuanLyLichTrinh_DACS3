@@ -39,4 +39,20 @@ class HomeViewModel(private val repository: AppRepository = AppRepository()) : V
             }
         }
     }
+
+    fun searchSchedules(query: String) {
+        viewModelScope.launch {
+            if (query.isBlank()) {
+                loadDashboardData()
+                return@launch
+            }
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val results = repository.searchSchedules(query)
+                _uiState.value = _uiState.value.copy(schedules = results, isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
 }

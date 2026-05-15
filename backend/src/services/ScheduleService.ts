@@ -49,11 +49,13 @@ export class ScheduleService {
       }
     }
 
-    const { reminders, collaborators, ...scheduleData } = data;
+    const { reminders, collaborators, id, ...scheduleData } = data;
+    const finalId = (id && id !== "") ? id : generateUUID();
 
     const schedule = scheduleRepository.create({
-      id: generateUUID(),
       ...scheduleData,
+      id: finalId,
+      creator_id: data.creator_id,
       start_time: data.start_time || data.start_date,
       end_time: data.end_time || data.end_date,
       status: "PENDING",

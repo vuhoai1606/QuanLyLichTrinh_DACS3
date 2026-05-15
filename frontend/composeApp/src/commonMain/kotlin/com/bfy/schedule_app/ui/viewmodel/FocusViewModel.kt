@@ -6,6 +6,7 @@ import com.bfy.schedule_app.data.remote.model.FocusStatsDto
 import com.bfy.schedule_app.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class FocusUiState(
@@ -13,7 +14,9 @@ data class FocusUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val timeLeft: Int = 25 * 60, // 25 minutes in seconds
-    val isRunning: Boolean = false
+    val isRunning: Boolean = false,
+    val showStartConfirmation: Boolean = false,
+    val showExitConfirmation: Boolean = false
 )
 
 class FocusViewModel(private val repository: AppRepository = AppRepository()) : ViewModel() {
@@ -25,47 +28,83 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
         loadFocusData()
     }
 
-    fun toggleTimer() {
-        if (_uiState.value.isRunning) {
-            pauseTimer()
+    fun onStartFocusClick() {
+        if (!_uiState.value.isRunning) {
+            _uiState.update { it.copy(showStartConfirmation = true) }
         } else {
-            startTimer()
+            // If already running, maybe show exit confirmation if they try to pause?
+            // The user said: "khi người dùng mà thoát khỏi app thì nó sẽ hiển thị thông báo"
+            // For now, let's keep pause simple or follow the requirement.
+            _uiState.update { it.copy(showExitConfirmation = true) }
+        }
+    }
+
+    fun confirmStartFocus() {
+        _uiState.update { it.copy(showStartConfirmation = false) }
+        startTimer()
+    }
+
+    fun cancelStartFocus() {
+        _uiState.update { it.copy(showStartConfirmation = false) }
+    }
+
+    fun confirmExitFocus() {
+        _uiState.update { it.copy(showExitConfirmation = false) }
+        resetTimer()
+    }
+
+    fun cancelExitFocus() {
+        _uiState.update { it.copy(showExitConfirmation = false) }
+    }
+
+    fun triggerExitConfirmation() {
+        if (_uiState.value.isRunning) {
+            _uiState.update { it.copy(showExitConfirmation = true) }
         }
     }
 
     private fun startTimer() {
-        _uiState.value = _uiState.value.copy(isRunning = true)
+        _uiState.update { it.copy(isRunning = true) }
         timerJob = viewModelScope.launch {
             while (_uiState.value.timeLeft > 0) {
                 kotlinx.coroutines.delay(1000)
-                _uiState.value = _uiState.value.copy(timeLeft = _uiState.value.timeLeft - 1)
+                _uiState.update { it.copy(timeLeft = it.timeLeft - 1) }
             }
-            _uiState.value = _uiState.value.copy(isRunning = false)
+            _uiState.update { it.copy(isRunning = false) }
+            
+            // Record completed session to BE
+            try {
+                repository.createFocusSession(25, "COMPLETED")
+                loadFocusData() // Refresh stats
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to save session: ${e.message}") }
+            }
         }
     }
 
     private fun pauseTimer() {
         timerJob?.cancel()
-        _uiState.value = _uiState.value.copy(isRunning = false)
+        _uiState.update { it.copy(isRunning = false) }
     }
 
     fun resetTimer() {
         pauseTimer()
-        _uiState.value = _uiState.value.copy(timeLeft = 25 * 60)
+        _uiState.update { it.copy(timeLeft = 25 * 60) }
     }
 
     fun loadFocusData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val stats = repository.getFocusStats()
-                _uiState.value = FocusUiState(stats = stats, isLoading = false)
+                _uiState.update { it.copy(stats = stats, isLoading = false) }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    stats = FocusStatsDto(12, 340),
-                    error = "Note: Using mock data (${e.message})"
-                )
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to load focus data: ${e.message}"
+                    )
+                }
             }
         }
     }

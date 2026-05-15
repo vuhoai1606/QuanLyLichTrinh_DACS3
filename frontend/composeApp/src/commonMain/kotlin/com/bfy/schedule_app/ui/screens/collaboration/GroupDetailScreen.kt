@@ -4,15 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,10 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.screens.homedashboard.DashboardTab
 import com.bfy.schedule_app.ui.viewmodel.GroupDetailViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
 import com.bfy.schedule_app.utils.Localization
-
 
 @Composable
 fun GroupDetailScreen(
@@ -39,6 +34,10 @@ fun GroupDetailScreen(
 ) {
     val viewModel: GroupDetailViewModel = viewModel { GroupDetailViewModel() }
     val uiState by viewModel.uiState.collectAsState()
+    
+    var showAddTaskDialog by remember { mutableStateOf(false) }
+    var newTaskTitle by remember { mutableStateOf("") }
+    var newTaskDesc by remember { mutableStateOf("") }
 
     LaunchedEffect(groupId) {
         viewModel.loadTasks(groupId)
@@ -55,13 +54,13 @@ fun GroupDetailScreen(
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item {
-                GroupHeaderCard(uiState.group)
+                GroupHeaderCard(uiState.group, uiState.members)
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
 
             item {
-                SharedTasksHeader()
+                SharedTasksHeader(onAddTaskClick = { showAddTaskDialog = true })
             }
 
             item { Spacer(modifier = Modifier.height(12.dp)) }
@@ -70,7 +69,7 @@ fun GroupDetailScreen(
                 item { CircularProgressIndicator(color = Color(0xFF59DBC7), modifier = Modifier.padding(16.dp)) }
             } else if (uiState.tasks.isEmpty()) {
                 item {
-                Text(Localization.get("no_groups"), color = Color(0xFFBBCAC5), modifier = Modifier.padding(16.dp))
+                    Text(Localization.get("no_groups"), color = Color(0xFFBBCAC5), modifier = Modifier.padding(16.dp))
                 }
             }
 
@@ -83,18 +82,17 @@ fun GroupDetailScreen(
                         "DONE" -> GroupTaskStatus.TODO
                         else -> GroupTaskStatus.TODO
                     },
-                    dateText = task.deadline ?: "No deadline",
+                    dateText = task.deadline ?: Localization.get("no_deadline"),
                     title = task.title,
                     description = task.description ?: "",
                     assignees = task.assignees
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
-
         }
 
         TopBar(
-            groupName = uiState.group?.name ?: "Group Details",
+            groupName = uiState.group?.name ?: Localization.get("group_details"),
             onBackClick = onBackClick,
             onSettingsClick = { }
         )
@@ -103,6 +101,46 @@ fun GroupDetailScreen(
             selectedTab = DashboardTab.COLLAB,
             onTabSelected = onTabSelected
         )
+
+        if (showAddTaskDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showAddTaskDialog = false },
+                title = { androidx.compose.material3.Text("Assign New Task") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        androidx.compose.material3.OutlinedTextField(
+                            value = newTaskTitle,
+                            onValueChange = { newTaskTitle = it },
+                            label = { androidx.compose.material3.Text("Task Title") },
+                            singleLine = true
+                        )
+                        androidx.compose.material3.OutlinedTextField(
+                            value = newTaskDesc,
+                            onValueChange = { newTaskDesc = it },
+                            label = { androidx.compose.material3.Text("Description") },
+                            minLines = 3
+                        )
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        if (newTaskTitle.isNotBlank()) {
+                            viewModel.createTask(groupId, newTaskTitle, newTaskDesc)
+                            showAddTaskDialog = false
+                            newTaskTitle = ""
+                            newTaskDesc = ""
+                        }
+                    }) {
+                        androidx.compose.material3.Text("Assign")
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { showAddTaskDialog = false }) {
+                        androidx.compose.material3.Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -173,7 +211,10 @@ private fun TopBar(
 }
 
 @Composable
-private fun GroupHeaderCard(group: com.bfy.schedule_app.data.remote.model.GroupDto?) {
+private fun GroupHeaderCard(
+    group: com.bfy.schedule_app.data.remote.model.GroupDto?,
+    members: List<com.bfy.schedule_app.data.remote.model.UserDto>
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -189,7 +230,7 @@ private fun GroupHeaderCard(group: com.bfy.schedule_app.data.remote.model.GroupD
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = group?.name ?: "Loading...",
+                    text = group?.name ?: Localization.get("loading"),
                     color = Color(0xFFE2E2E6),
                     fontSize = 34.sp,
                     lineHeight = 40.sp,
@@ -200,7 +241,7 @@ private fun GroupHeaderCard(group: com.bfy.schedule_app.data.remote.model.GroupD
                     Icon(Icons.Default.Group, contentDescription = null, tint = Color(0xFFBBCAC5), modifier = Modifier.size(15.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = group?.description ?: "No description available",
+                        text = group?.description ?: Localization.get("no_desc"),
                         color = Color(0xFFBBCAC5),
                         fontSize = 16.sp,
                         lineHeight = 24.sp
@@ -216,7 +257,7 @@ private fun GroupHeaderCard(group: com.bfy.schedule_app.data.remote.model.GroupD
                     .padding(horizontal = 13.dp, vertical = 5.dp)
             ) {
                 Text(
-                    text = "Rank:\nGold\nScholar",
+                    text = Localization.get("group_info") ?: "Group\nInfo",
                     color = Color(0xFFD5BAFF),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
@@ -228,7 +269,7 @@ private fun GroupHeaderCard(group: com.bfy.schedule_app.data.remote.model.GroupD
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "ACTIVE MEMBERS",
+            text = Localization.get("active_members"),
             color = Color(0xFFBBCAC5),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
@@ -238,19 +279,25 @@ private fun GroupHeaderCard(group: com.bfy.schedule_app.data.remote.model.GroupD
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ActiveMemberAvatar(color = Color(0xFF59DBC7), initials = "AR", active = true)
-            ActiveMemberAvatar(color = Color(0xFF59DBC7), initials = "SC", active = true)
-            ActiveMemberAvatar(color = Color(0xFF333538), initials = "DK", active = false)
-            ActiveMemberAvatar(color = Color(0xFF333538), initials = "MP", active = false)
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF282A2D))
-                    .border(1.dp, Color(0xFF3C4946), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("+8", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            val displayMembers = members.take(4)
+            displayMembers.forEach { member ->
+                ActiveMemberAvatar(
+                    color = Color(0xFF59DBC7), 
+                    initials = member.full_name.split(" ").mapNotNull { it.firstOrNull() }.joinToString("").take(2), 
+                    active = true 
+                )
+            }
+            if (members.size > 4) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF282A2D))
+                        .border(1.dp, Color(0xFF3C4946), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("+${members.size - 4}", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
@@ -286,7 +333,7 @@ private fun ActiveMemberAvatar(color: Color, initials: String, active: Boolean) 
 }
 
 @Composable
-private fun SharedTasksHeader() {
+private fun SharedTasksHeader(onAddTaskClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -298,7 +345,7 @@ private fun SharedTasksHeader() {
             fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold
         )
-
+ 
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(9999.dp))
@@ -307,13 +354,13 @@ private fun SharedTasksHeader() {
                         elevation = 4.dp,
                         shape = RoundedCornerShape(9999.dp)
                     )
-                    .clickable { }
+                    .clickable { onAddTaskClick() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF003731), modifier = Modifier.size(10.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Assign Task", color = Color(0xFF003731), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(Localization.get("assign_task"), color = Color(0xFF003731), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -328,7 +375,7 @@ private enum class GroupTaskStatus(
     val accentStripe: Color?
 ) {
     OVERDUE(
-        badgeText = "Overdue",
+        badgeText = Localization.get("overdue"),
         borderColor = Color(0x4DFFB4AB),
         badgeBackground = Color(0x3393000A),
         badgeBorder = Color(0x4DFFB4AB),
@@ -336,7 +383,7 @@ private enum class GroupTaskStatus(
         accentStripe = Color(0xFFFFB4AB)
     ),
     IN_PROGRESS(
-        badgeText = "In Progress",
+        badgeText = Localization.get("in_progress"),
         borderColor = Color(0xFF0F4490),
         badgeBackground = Color(0x330F4490),
         badgeBorder = Color(0x4DAEC6FF),
@@ -344,7 +391,7 @@ private enum class GroupTaskStatus(
         accentStripe = Color(0xFFAEC6FF)
     ),
     TODO(
-        badgeText = "To-do",
+        badgeText = Localization.get("todo"),
         borderColor = Color(0xFF333538),
         badgeBackground = Color(0xFF333538),
         badgeBorder = Color(0xFF3C4946),
@@ -418,6 +465,11 @@ private fun GroupTaskCard(
 
             if (status == GroupTaskStatus.IN_PROGRESS) {
                 Spacer(modifier = Modifier.height(8.dp))
+                val progressValue = when(status) {
+                    GroupTaskStatus.TODO -> 0.1f
+                    GroupTaskStatus.IN_PROGRESS -> 0.5f
+                    GroupTaskStatus.OVERDUE -> 0.3f
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -427,7 +479,7 @@ private fun GroupTaskCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.6f)
+                            .fillMaxWidth(progressValue)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(9999.dp))
                             .background(
@@ -438,7 +490,7 @@ private fun GroupTaskCard(
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("60% Complete", color = Color(0xFFBBCAC5), fontSize = 12.sp, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
+                Text("${(progressValue * 100).toInt()}% ${Localization.get("complete")}", color = Color(0xFFBBCAC5), fontSize = 12.sp, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
             } else {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -456,7 +508,7 @@ private fun GroupTaskCard(
                         Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF3C4946), modifier = Modifier.size(12.dp))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Unassigned", color = Color(0xFF3C4946), fontSize = 12.sp, fontStyle = FontStyle.Italic, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
+                    Text(Localization.get("unassigned"), color = Color(0xFF3C4946), fontSize = 12.sp, fontStyle = FontStyle.Italic, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy((-8).dp), verticalAlignment = Alignment.CenterVertically) {
@@ -478,51 +530,20 @@ private fun GroupTaskCard(
 }
 
 @Composable
-private fun CompletedTaskCard() {
-    Column(
+private fun NavItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    active: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0C0E11))
-            .border(1.dp, Color(0x4D3C4946), RoundedCornerShape(12.dp))
-            .padding(21.dp)
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(if (active) Color(0xFF59DBC7) else Color.Transparent)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0x1A59DBC7))
-                    .border(1.dp, Color(0x3359DBC7), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 9.dp, vertical = 5.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF79F7E3), modifier = Modifier.size(12.dp))
-                    Text("Done", color = Color(0xFF79F7E3), fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.48.sp)
-                }
-            }
-            Text("Completed Oct 12", color = Color(0xFF3C4946), fontSize = 12.sp, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            "Setup Discord Server",
-            color = Color(0xFF3C4946),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.SemiBold,
-            lineHeight = 28.sp,
-            textDecoration = TextDecoration.LineThrough
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            "Create channels for different topics and\ninvite all group members.",
-            color = Color(0xFF3C4946),
-            fontSize = 16.sp,
-            lineHeight = 24.sp
-        )
+        Icon(icon, contentDescription = null, tint = if (active) Color(0xFF003731) else Color(0xFFBBCAC5))
     }
 }
 
@@ -567,23 +588,5 @@ private fun BoxScope.BottomNavBar(
         ) {
             Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
         }
-    }
-}
-
-@Composable
-private fun NavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    active: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(if (active) Color(0xFF59DBC7) else Color.Transparent)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, contentDescription = null, tint = if (active) Color(0xFF003731) else Color(0xFFBBCAC5))
     }
 }

@@ -18,12 +18,14 @@ import com.bfy.schedule_app.ui.theme.*
 import com.bfy.schedule_app.ui.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
+import com.bfy.schedule_app.utils.Localization
 
 
 @Composable
 fun SignInScreen(
     onSignIn: () -> Unit = {},
-    onSignUpClick: () -> Unit = {}
+    onSignUpClick: () -> Unit = {},
+    onForgotPasswordClick: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -36,7 +38,6 @@ fun SignInScreen(
             onSignIn()
         }
     }
-
 
     Box(
         modifier = Modifier
@@ -56,7 +57,7 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(12.dp))
             
             SegmentedControl(
-                items = listOf("Sign In", "Sign Up"),
+                items = listOf(Localization.get("sign_in"), Localization.get("sign_up")),
                 selectedIndex = 0,
                 onItemSelection = { if (it == 1) onSignUpClick() }
             )
@@ -64,45 +65,58 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(20.dp))
             
             AuthTextField(
-                label = "Email Address",
+                label = Localization.get("email_address"),
                 value = email,
                 onValueChange = { email = it },
                 placeholder = "alex@example.com"
             )
             
             AuthTextField(
-                label = "Password",
+                label = Localization.get("password"),
                 value = password,
                 onValueChange = { password = it },
                 placeholder = "••••••••"
             )
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                Text(
+                    text = Localization.get("forgot_password") ?: "Forgot Password?",
+                    color = PrimaryColor,
+                    fontSize = 12.sp,
+                    modifier = Modifier.clickable { onForgotPasswordClick() }
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
             
             if (uiState.error != null) {
                 Text(uiState.error!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
             }
 
             PrimaryButton(
-                text = if (uiState.isLoading) "Signing In..." else "Sign In",
+                text = if (uiState.isLoading) Localization.get("signing_in") else Localization.get("sign_in"),
                 onClick = { viewModel.login(email, password) }
             )
-
             
-            DividerWithText("OR")
+            DividerWithText(Localization.get("or"))
             
             Spacer(modifier = Modifier.height(8.dp))
             
             GoogleSignInButton(
-                onClick = {}
+                onClick = {
+                    // Mock Google Login for demo
+                    viewModel.googleLogin("google_123", "google_user@gmail.com", "Google User")
+                }
             )
             
             Spacer(modifier = Modifier.height(32.dp))
             
             val annotatedString = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = TextSecondary, fontSize = 12.sp)) {
-                    append("Don't have an account? ")
+                    append(Localization.get("dont_have_account"))
                 }
                 withStyle(style = SpanStyle(color = PrimaryColor, fontSize = 12.sp)) {
-                    append("Sign Up")
+                    append(Localization.get("sign_up"))
                 }
             }
             Text(

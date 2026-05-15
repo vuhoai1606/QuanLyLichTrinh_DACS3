@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 
 data class CollaborationUiState(
     val groups: List<GroupDto> = emptyList(),
+    val sharedSchedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -27,11 +28,31 @@ class CollaborationViewModel(private val repository: AppRepository = AppReposito
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val groups = repository.getGroups()
-                _uiState.value = CollaborationUiState(groups = groups, isLoading = false)
+                val shared = try { repository.getSharedWithMe() } catch (e: Exception) { emptyList() }
+                _uiState.value = CollaborationUiState(
+                    groups = groups, 
+                    sharedSchedules = shared,
+                    isLoading = false
+                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Failed to load groups: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun createGroup(name: String, description: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                repository.createGroup(name, description)
+                loadGroups()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to create group: ${e.message}"
                 )
             }
         }

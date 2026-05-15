@@ -19,6 +19,7 @@ import com.bfy.schedule_app.ui.theme.*
 import com.bfy.schedule_app.ui.viewmodel.CalendarViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
+import com.bfy.schedule_app.utils.Localization
 
 
 @Composable
@@ -46,7 +47,7 @@ fun DayHeader(date: kotlinx.datetime.LocalDate) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(date.dayOfWeek.name.take(3), color = PrimaryColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(Localization.getDayOfWeek(date.dayOfWeek), color = PrimaryColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier.size(48.dp).clip(CircleShape).background(PrimaryColor),
@@ -56,7 +57,7 @@ fun DayHeader(date: kotlinx.datetime.LocalDate) {
             }
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Text("${date.month} ${date.year}", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        Text("${Localization.getMonth(date.month)} ${date.year}", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
     }
 }
 

@@ -2,6 +2,7 @@ package com.bfy.schedule_app.ui.screens.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -114,25 +115,28 @@ fun WeekTimeGrid(uiState: CalendarUiState) {
         uiState.schedules.forEach { schedule ->
             val startTimeStr = schedule.start_time
             if (startTimeStr != null && startTimeStr.length >= 10) {
+                var eventDate: LocalDate? = null
                 try {
-                    val eventDate = LocalDate.parse(startTimeStr.substring(0, 10))
+                    eventDate = LocalDate.parse(startTimeStr.substring(0, 10))
+                } catch (e: Exception) {
+                    // Ignore parsing error
+                }
+
+                if (eventDate != null) {
                     // Check if event is within the current week
                     if (eventDate >= monday && eventDate <= sunday) {
-                        val dayIndex = (eventDate.dayOfMonth - monday.dayOfMonth + 31) % 31 // simplified, but better calculate properly
-                        // Real calculation:
                         val daysBetween = eventDate.toEpochDays() - monday.toEpochDays()
                         
                         if (daysBetween in 0..6) {
                             val hour = startTimeStr.substringAfter("T").substringBefore(":").toIntOrNull() ?: 9
                             if (hour in 9..17) {
                                 val topOffset = (hour - 9) * 60
-                                val leftOffset = 60 + (daysBetween * ((1.0 / 7.0))) // This won't work with offset.dp directly
                                 
                                 Box(
                                     modifier = Modifier
                                         .padding(start = 60.dp, end = 16.dp)
                                         .offset(
-                                            x = (daysBetween * ( (400 - 60 - 16) / 7)).dp, // Rough estimation of width
+                                            x = (daysBetween * ((400 - 60 - 16) / 7)).dp,
                                             y = topOffset.dp
                                         )
                                         .fillMaxWidth(0.12f)
@@ -147,7 +151,7 @@ fun WeekTimeGrid(uiState: CalendarUiState) {
                             }
                         }
                     }
-                } catch (e: Exception) {}
+                }
             }
         }
     }
