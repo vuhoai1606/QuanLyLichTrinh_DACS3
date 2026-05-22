@@ -4,14 +4,14 @@ import { successResponse, errorResponse, AppError } from "@utils/errors";
 export class CollaborationController {
   // Create group
   async createGroup(body: any) {
-    const { name, leader_id } = body;
+    const { name, leader_id, description, avatar_url, members } = body;
 
     if (!name || !leader_id) {
       return errorResponse(400, "name and leader_id required", "MISSING_FIELDS");
     }
 
     try {
-      const group = await collaborationService.createGroup(name, leader_id);
+      const group = await collaborationService.createGroup(leader_id, name, description, avatar_url, members);
       return new Response(
         JSON.stringify({
           status: 201,
@@ -44,14 +44,14 @@ export class CollaborationController {
 
   // Add member to group
   async addMemberToGroup(body: any) {
-    const { group_id, user_id, requester_id } = body;
+    const { group_id, user_id, requester_id, role } = body;
 
     if (!group_id || !user_id || !requester_id) {
       return errorResponse(400, "group_id, user_id, and requester_id required", "MISSING_FIELDS");
     }
 
     try {
-      const member = await collaborationService.addMemberToGroup(group_id, user_id, requester_id);
+      const member = await collaborationService.addMemberToGroup(group_id, user_id, requester_id, role);
       return new Response(
         JSON.stringify({
           status: 201,
@@ -61,6 +61,25 @@ export class CollaborationController {
         }),
         { status: 201, headers: { "Content-Type": "application/json" } }
       );
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  // Remove member from group
+  async removeMemberFromGroup(body: any) {
+    const { group_id, user_id, requester_id } = body;
+
+    if (!group_id || !user_id || !requester_id) {
+      return errorResponse(400, "group_id, user_id, and requester_id required", "MISSING_FIELDS");
+    }
+
+    try {
+      const result = await collaborationService.removeMemberFromGroup(group_id, user_id, requester_id);
+      return successResponse(result, "Member removed successfully");
     } catch (error) {
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);

@@ -21,6 +21,23 @@ export class UserController {
     }
   }
 
+  // Update user profile
+  async updateProfile(ctx: any) {
+    try {
+      const userId = (ctx as any).user?.userId || (ctx as any).user?.id;
+      if (!userId) {
+        return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
+      }
+
+      const body = await ctx.request.json();
+      const updatedProfile = await userService.updateProfile(userId, body);
+
+      return successResponse(updatedProfile, "Profile updated successfully");
+    } catch (error) {
+      return errorResponse(500, error instanceof Error ? error.message : "Internal server error");
+    }
+  }
+
   // Search users
   async searchUsers(query: any) {
     const { q, user_id, limit = 10 } = query;

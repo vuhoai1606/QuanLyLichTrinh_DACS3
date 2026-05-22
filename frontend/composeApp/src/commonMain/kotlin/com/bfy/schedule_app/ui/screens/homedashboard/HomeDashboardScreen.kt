@@ -14,13 +14,18 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import kotlinx.datetime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -161,6 +166,15 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
                     onItemClick = { schedule ->
                         selectedScheduleForAction = schedule
                         showActionDialog = true
+                    },
+                    onStatusChange = { viewModel.loadDashboardData() },
+                    onEditClick = { schedule ->
+                        selectedScheduleForAction = schedule
+                        showEditScreen = true
+                    },
+                    onDeleteClick = { schedule ->
+                        selectedScheduleForAction = schedule
+                        showDeleteConfirm = true
                     }
                 )
 
@@ -195,64 +209,75 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
             if (showActionDialog && selectedScheduleForAction != null) {
                 androidx.compose.material3.AlertDialog(
                     onDismissRequest = { showActionDialog = false },
-                    title = { Text(selectedScheduleForAction?.title ?: "") },
+                    title = { 
+                        Text(
+                            text = selectedScheduleForAction?.title ?: "",
+                            style = androidx.compose.ui.text.TextStyle(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                    },
                     text = {
-                        Column {
-                            androidx.compose.material3.TextButton(
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (!selectedScheduleForAction!!.description.isNullOrBlank()) {
+                                Text(
+                                    text = selectedScheduleForAction!!.description!!,
+                                    color = Color(0xFFBBCAC5),
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
+                            
+                            ActionDialogButton(
+                                label = Localization.get("mark_done") ?: "Mark as Done",
+                                icon = Icons.Default.CheckCircle,
+                                iconTint = PrimaryColor,
                                 onClick = {
                                     scope.launch {
                                         try {
                                             AppRepository().updateSchedule(
                                                 selectedScheduleForAction!!.id,
-                                                mapOf("status" to "DONE")
+                                                com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest(status = "DONE")
                                             )
                                             viewModel.loadDashboardData()
                                             showActionDialog = false
                                             selectedScheduleForAction = null
                                         } catch (e: Exception) {}
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PrimaryColor)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(Localization.get("mark_done") ?: "Mark as Done")
                                 }
-                            }
-                            androidx.compose.material3.TextButton(
+                            )
+                            
+                            ActionDialogButton(
+                                label = Localization.get("edit") ?: "Edit",
+                                icon = Icons.Default.Edit,
+                                iconTint = Color.White,
                                 onClick = {
                                     showActionDialog = false
                                     showEditScreen = true
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(Localization.get("edit") ?: "Edit")
                                 }
-                            }
-                            androidx.compose.material3.TextButton(
+                            )
+                            
+                            ActionDialogButton(
+                                label = Localization.get("delete") ?: "Delete",
+                                icon = Icons.Default.Delete,
+                                iconTint = Color(0xFFFF7B7B),
+                                textColor = Color(0xFFFF7B7B),
                                 onClick = {
                                     showActionDialog = false
                                     showDeleteConfirm = true
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(Localization.get("delete") ?: "Delete", color = Color.Red)
                                 }
-                            }
+                            )
                         }
                     },
                     confirmButton = {
                         androidx.compose.material3.TextButton(onClick = { showActionDialog = false }) {
-                            Text(Localization.get("cancel") ?: "Cancel")
+                            Text(Localization.get("cancel") ?: "Cancel", color = Color(0xFF59DBC7))
                         }
-                    }
+                    },
+                    containerColor = Color(0xFF1E2023),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
 
@@ -286,13 +311,23 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
             if (showNotificationsDialog) {
                 androidx.compose.material3.AlertDialog(
                     onDismissRequest = { showNotificationsDialog = false },
-                    title = { androidx.compose.material3.Text(Localization.get("notifications")) },
+                    title = { 
+                        androidx.compose.material3.Text(
+                            text = Localization.get("notifications") ?: "Notifications",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        ) 
+                    },
                     text = {
                         Box(modifier = Modifier.fillMaxWidth().height(400.dp)) {
                             if (notificationUiState.isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryColor)
                             } else if (notificationUiState.notifications.isEmpty()) {
-                                androidx.compose.material3.Text(Localization.get("no_notifications"), modifier = Modifier.align(Alignment.Center))
+                                androidx.compose.material3.Text(
+                                    text = Localization.get("no_notifications") ?: "No notifications",
+                                    color = Color(0xFFBBCAC5),
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
                             } else {
                                 LazyColumn {
                                     items(notificationUiState.notifications) { notification ->
@@ -300,19 +335,24 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable { notificationViewModel.markRead(notification.id) }
-                                                .padding(vertical = 8.dp)
+                                                .padding(vertical = 12.dp)
                                         ) {
                                             androidx.compose.material3.Text(
                                                 text = notification.title,
-                                                fontWeight = if (notification.is_read) FontWeight.Normal else FontWeight.Bold,
-                                                color = if (notification.is_read) TextSecondary else TextPrimary
+                                                fontWeight = if (notification.ia_read) FontWeight.Normal else FontWeight.Bold,
+                                                color = if (notification.ia_read) Color(0xFF869490) else Color.White,
+                                                fontSize = 16.sp
                                             )
+                                            Spacer(modifier = Modifier.height(4.dp))
                                             androidx.compose.material3.Text(
                                                 text = notification.message,
-                                                fontSize = 12.sp,
-                                                color = TextSecondary
+                                                fontSize = 13.sp,
+                                                color = Color(0xFFBBCAC5)
                                             )
-                                            Divider(modifier = Modifier.padding(top = 8.dp), color = Color.Gray.copy(alpha = 0.2f))
+                                            Divider(
+                                                modifier = Modifier.padding(top = 12.dp),
+                                                color = Color(0xFF3C4946).copy(alpha = 0.5f)
+                                            )
                                         }
                                     }
                                 }
@@ -321,9 +361,11 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
                     },
                     confirmButton = {
                         androidx.compose.material3.TextButton(onClick = { showNotificationsDialog = false }) {
-                            androidx.compose.material3.Text(Localization.get("ok"))
+                            androidx.compose.material3.Text(Localization.get("ok") ?: "OK", color = Color(0xFF59DBC7))
                         }
-                    }
+                    },
+                    containerColor = Color(0xFF1E2023),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         }
@@ -336,7 +378,10 @@ fun HomeContent(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onLeaderboardClick: () -> Unit,
-    onItemClick: (ScheduleDto) -> Unit
+    onItemClick: (ScheduleDto) -> Unit,
+    onStatusChange: () -> Unit,
+    onEditClick: (ScheduleDto) -> Unit,
+    onDeleteClick: (ScheduleDto) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -373,7 +418,7 @@ fun HomeContent(
             )
         }
         item { Spacer(modifier = Modifier.height(24.dp)) }
-        item { TimelineSection(uiState.schedules, onItemClick) }
+        item { TimelineSection(uiState.schedules, onItemClick, onStatusChange, onEditClick, onDeleteClick) }
     }
 }
 
@@ -599,7 +644,86 @@ fun EXPProgressBar(exp: Int, nextLevelExp: Int) {
 }
 
 @Composable
-fun TimelineSection(schedules: List<ScheduleDto>, onItemClick: (ScheduleDto) -> Unit) {
+fun SwipeToRevealContainer(
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    var offsetX by remember { mutableStateOf(0f) }
+    val maxSwipe = -200f // 200px (around 100dp) is perfect to fit 2 icons side-by-side
+    val swipeLimit = -250f
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+    ) {
+        // Background revealed actions on the right side
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .padding(end = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    offsetX = 0f
+                    onEdit()
+                },
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF282A2D))
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White, modifier = Modifier.size(20.dp))
+            }
+            
+            IconButton(
+                onClick = {
+                    offsetX = 0f
+                    onDelete()
+                },
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF4D4D).copy(alpha = 0.2f))
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFFF4D4D), modifier = Modifier.size(20.dp))
+            }
+        }
+        
+        // Front content card that swipes
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(offsetX.toInt(), 0) }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            offsetX = if (offsetX < maxSwipe / 2) maxSwipe else 0f
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            offsetX = (offsetX + dragAmount).coerceIn(swipeLimit, 0f)
+                        }
+                    )
+                }
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun TimelineSection(
+    schedules: List<ScheduleDto>,
+    onItemClick: (ScheduleDto) -> Unit,
+    onStatusChange: () -> Unit,
+    onEditClick: (ScheduleDto) -> Unit,
+    onDeleteClick: (ScheduleDto) -> Unit
+) {
     if (schedules.isEmpty()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
@@ -643,9 +767,14 @@ fun TimelineSection(schedules: List<ScheduleDto>, onItemClick: (ScheduleDto) -> 
                     }
                 }
                 
-                // Content
+                // Content with Swipe to Reveal Edit/Delete Icons
                 Column(modifier = Modifier.weight(1f).padding(bottom = 24.dp)) {
-                    TimelineCard(schedule, onClick = { onItemClick(schedule) })
+                    SwipeToRevealContainer(
+                        onEdit = { onEditClick(schedule) },
+                        onDelete = { onDeleteClick(schedule) }
+                    ) {
+                        TimelineCard(schedule, onClick = { onItemClick(schedule) }, onStatusChange = onStatusChange)
+                    }
                 }
             }
         }
@@ -653,83 +782,228 @@ fun TimelineSection(schedules: List<ScheduleDto>, onItemClick: (ScheduleDto) -> 
 }
 
 @Composable
-fun TimelineCard(schedule: ScheduleDto, onClick: () -> Unit) {
+fun TimelineCard(
+    schedule: ScheduleDto,
+    onClick: () -> Unit,
+    onStatusChange: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var showConfirmDoneDialog by remember { mutableStateOf(false) }
+
+    if (showConfirmDoneDialog) {
+        androidx.compose.material.AlertDialog(
+            onDismissRequest = { showConfirmDoneDialog = false },
+            title = { Text("Confirm Action", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text("Do you want to confirm marking this task as done?", color = Color(0xFFBBCAC5)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDoneDialog = false
+                        scope.launch {
+                            try {
+                                AppRepository().updateSchedule(
+                                    schedule.id,
+                                    com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest(status = "DONE")
+                                )
+                                onStatusChange()
+                            } catch (e: Exception) {}
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF59DBC7))
+                ) {
+                    Text("Confirm", color = Color(0xFF003731))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDoneDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            },
+            backgroundColor = Color(0xFF1E2023)
+        )
+    }
+
     if (schedule.type == "TODO") {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1E2023))
-                .clickable { onClick() }
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    schedule.title,
+                    color = if (schedule.status == "DONE") TextSecondary else TextPrimary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = if (schedule.status == "DONE") TextDecoration.LineThrough else null
+                )
+            }
             Box(
                 modifier = Modifier
                     .size(24.dp)
-                    .border(2.dp, if (schedule.status == "DONE") Color(0xFF59DBC7) else Color(0x33869490), RoundedCornerShape(4.dp))
-                    .background(if (schedule.status == "DONE") Color(0xFF59DBC7) else Color.Transparent, RoundedCornerShape(4.dp)),
+                    .clip(CircleShape)
+                    .background(if (schedule.status == "DONE") Color(0xFF59DBC7) else Color.Transparent)
+                    .border(2.dp, if (schedule.status == "DONE") Color(0xFF59DBC7) else Color(0xFF869490), CircleShape)
+                    .clickable { 
+                        if (schedule.status != "DONE") {
+                            showConfirmDoneDialog = true 
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 if (schedule.status == "DONE") {
-                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF003731), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF003731), modifier = Modifier.size(16.dp))
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                schedule.title,
-                color = if (schedule.status == "DONE") TextSecondary else TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                textDecoration = if (schedule.status == "DONE") TextDecoration.LineThrough else null
-            )
         }
     } else {
-        val accentColor = if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF)
-        val tagBg = if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF)
-        val tagColor = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFD5BAFF)
+        val isDone = schedule.status == "DONE"
         
+        // Overdue logic
+        val isOverdue = !isDone && schedule.deadline?.let {
+            try {
+                val deadline = Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault())
+                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                deadline < now
+            } catch (e: Exception) { false }
+        } ?: false
+
+        val accentColor = when {
+            isDone -> Color(0xFF59DBC7)
+            isOverdue -> Color(0xFFFF7B7B)
+            schedule.type == "EVENT" -> Color(0xFF0F4490)
+            else -> Color(0xFFAD7BFF)
+        }
+        val tagBg = when {
+            isDone -> Color(0x3359DBC7)
+            isOverdue -> Color(0x33FF7B7B)
+            schedule.type == "EVENT" -> Color(0x330F4490)
+            else -> Color(0x33AD7BFF)
+        }
+        val tagColor = when {
+            isDone -> Color(0xFF59DBC7)
+            isOverdue -> Color(0xFFFF7B7B)
+            schedule.type == "EVENT" -> Color(0xFF92B4FF)
+            else -> Color(0xFFD5BAFF)
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1E2023))
-                .border(1.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .clickable { onClick() }
+                .border(1.dp, accentColor.copy(alpha = if (isDone) 0.3f else 0.5f), RoundedCornerShape(12.dp))
+                .alpha(if (isDone) 0.6f else 1f)
                 .padding(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(tagBg)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(tagBg)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (schedule.type == "EVENT") "[E] EVENT" else "[T] TASK",
+                            color = tagColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    if (isDone) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFF59DBC7).copy(alpha = 0.2f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "DONE",
+                                color = Color(0xFF59DBC7),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    } else if (isOverdue) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFFF7B7B).copy(alpha = 0.2f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = Localization.get("overdue") ?: "OVERDUE",
+                                color = Color(0xFFFF7B7B),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        if (schedule.type == "EVENT") "[E] EVENT" else "[T] TASK",
-                        color = tagColor,
-                        fontSize = 10.sp,
+                        text = if (schedule.type == "EVENT") {
+                            try {
+                                val start = Instant.parse(schedule.start_time!!).toLocalDateTime(TimeZone.currentSystemDefault())
+                                val end = Instant.parse(schedule.end_time!!).toLocalDateTime(TimeZone.currentSystemDefault())
+                                "${start.hour.toString().padStart(2, '0')}:${start.minute.toString().padStart(2, '0')} - ${end.hour.toString().padStart(2, '0')}:${end.minute.toString().padStart(2, '0')}"
+                            } catch (e: Exception) { schedule.start_time ?: "" }
+                        } else {
+                            try {
+                                val deadlineStr = schedule.deadline ?: schedule.start_time
+                                val dt = Instant.parse(deadlineStr!!).toLocalDateTime(TimeZone.currentSystemDefault())
+                                "Due ${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
+                            } catch (e: Exception) { schedule.deadline ?: "" }
+                        },
+                        color = if (isDone) Color(0xFF869490) else TextPrimary,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    if (schedule.type == "EVENT") {
-                        "${schedule.start_time?.substringAfter("T")?.substringBefore(":")}:${schedule.start_time?.substringAfter(":")?.substringBefore(":")} AM - ${schedule.end_time?.substringAfter("T")?.substringBefore(":")}:${schedule.end_time?.substringAfter(":")?.substringBefore(":")} AM"
-                    } else {
-                        "Due ${schedule.deadline?.substringAfter("T")?.substringBefore(":")}:00 PM"
-                    },
-                    color = TextPrimary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                
+                // Small circular checkbox on the top right
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(if (isDone) Color(0xFF59DBC7) else Color.Transparent)
+                        .border(2.dp, if (isDone) Color(0xFF59DBC7) else Color(0xFF869490), CircleShape)
+                        .clickable { 
+                            if (!isDone) {
+                                showConfirmDoneDialog = true 
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isDone) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF003731), modifier = Modifier.size(16.dp))
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(schedule.title, color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = schedule.title,
+                color = if (isDone) Color(0xFF869490) else TextPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                textDecoration = if (isDone) TextDecoration.LineThrough else null
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 schedule.location ?: schedule.description ?: "",
-                color = TextSecondary,
+                color = if (isDone) Color(0xFF869490).copy(alpha = 0.7f) else TextSecondary,
                 fontSize = 14.sp
             )
         }
@@ -774,6 +1048,42 @@ fun TimelineEventItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(subtitle, color = TextSecondary, fontSize = 14.sp)
             }
+        }
+    }
+}
+
+@Composable
+private fun ActionDialogButton(
+    label: String,
+    icon: ImageVector,
+    iconTint: Color,
+    textColor: Color = Color.White,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = label,
+                color = textColor,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

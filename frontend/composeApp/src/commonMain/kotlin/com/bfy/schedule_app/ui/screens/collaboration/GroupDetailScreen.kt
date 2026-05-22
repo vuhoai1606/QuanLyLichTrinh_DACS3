@@ -36,8 +36,7 @@ fun GroupDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     
     var showAddTaskDialog by remember { mutableStateOf(false) }
-    var newTaskTitle by remember { mutableStateOf("") }
-    var newTaskDesc by remember { mutableStateOf("") }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(groupId) {
         viewModel.loadTasks(groupId)
@@ -50,7 +49,7 @@ fun GroupDetailScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 80.dp, start = 24.dp, end = 24.dp, bottom = 104.dp),
+            contentPadding = PaddingValues(top = 80.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item {
@@ -94,51 +93,24 @@ fun GroupDetailScreen(
         TopBar(
             groupName = uiState.group?.name ?: Localization.get("group_details"),
             onBackClick = onBackClick,
-            onSettingsClick = { }
+            onSettingsClick = { showSettingsDialog = true }
         )
 
-        BottomNavBar(
-            selectedTab = DashboardTab.COLLAB,
-            onTabSelected = onTabSelected
-        )
+
 
         if (showAddTaskDialog) {
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { showAddTaskDialog = false },
-                title = { androidx.compose.material3.Text("Assign New Task") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        androidx.compose.material3.OutlinedTextField(
-                            value = newTaskTitle,
-                            onValueChange = { newTaskTitle = it },
-                            label = { androidx.compose.material3.Text("Task Title") },
-                            singleLine = true
-                        )
-                        androidx.compose.material3.OutlinedTextField(
-                            value = newTaskDesc,
-                            onValueChange = { newTaskDesc = it },
-                            label = { androidx.compose.material3.Text("Description") },
-                            minLines = 3
-                        )
-                    }
-                },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = {
-                        if (newTaskTitle.isNotBlank()) {
-                            viewModel.createTask(groupId, newTaskTitle, newTaskDesc)
-                            showAddTaskDialog = false
-                            newTaskTitle = ""
-                            newTaskDesc = ""
-                        }
-                    }) {
-                        androidx.compose.material3.Text("Assign")
-                    }
-                },
-                dismissButton = {
-                    androidx.compose.material3.TextButton(onClick = { showAddTaskDialog = false }) {
-                        androidx.compose.material3.Text("Cancel")
-                    }
-                }
+            AssignTaskDialog(
+                groupId = groupId,
+                viewModel = viewModel,
+                onDismissRequest = { showAddTaskDialog = false }
+            )
+        }
+
+        if (showSettingsDialog) {
+            GroupSettingsDialog(
+                groupId = groupId,
+                viewModel = viewModel,
+                onDismissRequest = { showSettingsDialog = false }
             )
         }
     }
@@ -213,7 +185,7 @@ private fun TopBar(
 @Composable
 private fun GroupHeaderCard(
     group: com.bfy.schedule_app.data.remote.model.GroupDto?,
-    members: List<com.bfy.schedule_app.data.remote.model.UserDto>
+    members: List<com.bfy.schedule_app.data.remote.model.GroupMemberDto>
 ) {
     Column(
         modifier = Modifier

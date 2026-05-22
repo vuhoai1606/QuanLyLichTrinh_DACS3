@@ -12,7 +12,8 @@ data class CreateItemUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val error: String? = null,
-    val categories: List<com.bfy.schedule_app.data.remote.model.CategoryDto> = emptyList()
+    val categories: List<com.bfy.schedule_app.data.remote.model.CategoryDto> = emptyList(),
+    val subTasks: List<String> = emptyList()
 )
 
 class CreateItemViewModel(private val repository: AppRepository = AppRepository()) : ViewModel() {
@@ -38,7 +39,10 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
         deadline: String? = null,
         isAllDay: Boolean = false,
         recurrence: String? = null, // "Never", "Daily", "Weekly", "Monthly"
-        reminders: List<String> = emptyList()
+        reminders: List<String> = emptyList(),
+        categoryName: String? = null,
+        isAlarm: Boolean = false,
+        isCountdown: Boolean = false
     ) {
         viewModelScope.launch {
             _uiState.value = CreateItemUiState(isLoading = true)
@@ -62,9 +66,12 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                     },
                     reminders = reminders.map {
                         com.bfy.schedule_app.data.remote.model.ReminderDto(
-                            trigger_type = it
+                            trigger_type = it,
+                            is_alarm = isAlarm
                         )
-                    }
+                    },
+                    category_name = categoryName,
+                    is_countdown_enabled = isCountdown
                 )
                 repository.createSchedule(schedule)
                 _uiState.value = CreateItemUiState(isSuccess = true)
@@ -85,34 +92,60 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
         deadline: String? = null,
         isAllDay: Boolean = false,
         recurrence: String? = null,
-        reminders: List<String> = emptyList()
+        reminders: List<String> = emptyList(),
+        categoryName: String? = null,
+        isAlarm: Boolean = false,
+        isCountdown: Boolean = false
     ) {
         viewModelScope.launch {
             _uiState.value = CreateItemUiState(isLoading = true)
             try {
-                val updates = mutableMapOf<String, Any?>(
-                    "title" to title,
-                    "description" to description,
-                    "type" to type,
-                    "priority" to priority,
-                    "start_time" to startTime,
-                    "end_time" to endTime,
-                    "deadline" to deadline,
-                    "is_all_day" to isAllDay
-                )
-                if (recurrence != null) {
-                    updates["is_recurring"] = recurrence != "Never"
-                    updates["recurrence_type"] = when(recurrence) {
+                val isRecurring = recurrence != null && recurrence != "Never"
+                val recurrenceType = if (recurrence != null) {
+                    when(recurrence) {
                         "Daily" -> "DAILY"
                         "Weekly" -> "WEEKLY"
                         "Monthly" -> "MONTHLY"
                         else -> null
                     }
-                }
+                } else null
+
+                val updates = com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest(
+                    title = title,
+                    description = description,
+                    type = type,
+                    priority = priority,
+                    start_time = startTime,
+                    end_time = endTime,
+                    deadline = deadline,
+                    is_all_day = isAllDay,
+                    category_name = categoryName,
+                    is_recurring = isRecurring,
+                    recurrence_type = recurrenceType,
+                    is_countdown_enabled = isCountdown,
+                    reminders = reminders.map {
+                        com.bfy.schedule_app.data.remote.model.ReminderDto(
+                            trigger_type = it,
+                            is_alarm = isAlarm
+                        )
+                    }
+                )
                 repository.updateSchedule(id, updates)
                 _uiState.value = CreateItemUiState(isSuccess = true)
             } catch (e: Exception) {
                 _uiState.value = CreateItemUiState(isLoading = false, error = e.message ?: "Update failed")
+            }
+        }
+    }
+
+    fun suggestSubTasks(title: String, description: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val suggestions = repository.aiBreakdownTask(title, description)
+                _uiState.value = _uiState.value.copy(subTasks = suggestions, isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }

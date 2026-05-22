@@ -27,6 +27,34 @@ class AppRepository {
         }
     }
 
+    suspend fun updateProfile(fullName: String? = null, bio: String? = null, avatarUrl: String? = null, gender: String? = null, dob: String? = null): UserDto {
+        val response: ApiResponse<UserDto> = client.patch(ApiClient.getUrl("/users/profile")) {
+            ApiClient.authToken?.let {
+                header("Authorization", "Bearer $it")
+            }
+            setBody(mapOf(
+                "full_name" to fullName,
+                "bio" to bio,
+                "avatar_url" to avatarUrl,
+                "gender" to gender,
+                "dob" to dob
+            ).filterValues { it != null })
+            contentType(ContentType.Application.Json)
+        }.body()
+        return response.data ?: throw Exception(response.message ?: "Failed to update profile")
+    }
+
+    suspend fun updateUserSettings(settings: Map<String, Any?>): Boolean {
+        val response: ApiResponse<Unit> = client.patch(ApiClient.getUrl("/settings")) {
+            ApiClient.authToken?.let {
+                header("Authorization", "Bearer $it")
+            }
+            setBody(settings)
+            contentType(ContentType.Application.Json)
+        }.body()
+        return response.success == true
+    }
+
     suspend fun getSchedules(): List<ScheduleDto> {
         val response: ApiResponse<List<ScheduleDto>> = client.get(ApiClient.getUrl("/schedule")) {
             ApiClient.authToken?.let {
@@ -77,21 +105,27 @@ class AppRepository {
         }.body()
         
         if (response.success == true && response.data != null) {
-            ApiClient.setToken(response.data.token)
+            ApiClient.setTokens(response.data.token, response.data.refreshToken ?: "")
             return response.data
         } else {
             throw Exception(response.message ?: "Login failed")
         }
     }
 
-    suspend fun register(fullName: String, email: String, password: String): AuthResponseData {
+    suspend fun register(fullName: String, email: String, password: String, gender: String? = null, dob: String? = null): AuthResponseData {
         val response: ApiResponse<AuthResponseData> = client.post(ApiClient.getUrl("/auth/register")) {
-            setBody(mapOf("full_name" to fullName, "email" to email, "password" to password))
+            setBody(mapOf(
+                "full_name" to fullName,
+                "email" to email,
+                "password" to password,
+                "gender" to gender,
+                "dob" to dob
+            ).filterValues { it != null })
             contentType(ContentType.Application.Json)
         }.body()
         
         if (response.success == true && response.data != null) {
-            ApiClient.setToken(response.data.token)
+            ApiClient.setTokens(response.data.token, response.data.refreshToken ?: "")
             return response.data
         } else {
             throw Exception(response.message ?: "Registration failed")
@@ -114,8 +148,26 @@ class AppRepository {
         }
         
         val data = response.data ?: throw Exception("Invalid response data")
-        ApiClient.setToken(data.token)
+        ApiClient.setTokens(data.token, data.refreshToken ?: "")
         return data
+    }
+
+    suspend fun changePassword(oldPassword: String, newPassword: String): Boolean {
+        val response: ApiResponse<Unit> = client.post(ApiClient.getUrl("/auth/change-password")) {
+            ApiClient.authToken?.let {
+                header("Authorization", "Bearer $it")
+            }
+            contentType(ContentType.Application.Json)
+            setBody(mapOf(
+                "oldPassword" to oldPassword,
+                "newPassword" to newPassword
+            ))
+        }.body()
+        
+        if (response.success != true) {
+            throw Exception(response.message ?: "Failed to change password")
+        }
+        return true
     }
 
     suspend fun forgotPassword(email: String): Boolean {
@@ -179,7 +231,7 @@ class AppRepository {
         return response.data ?: emptyList()
     }
 
-    suspend fun updateSchedule(scheduleId: String, updates: Map<String, Any?>) {
+    suspend fun updateSchedule(scheduleId: String, updates: com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest) {
         val response: ApiResponse<Unit> = client.put(ApiClient.getUrl("/schedule/$scheduleId")) {
             if (ApiClient.authToken != null) {
                 header("Authorization", "Bearer ${ApiClient.authToken}")
@@ -223,13 +275,25 @@ class AppRepository {
         }
     }
 
-    suspend fun createGroup(name: String, description: String?): GroupDto {
+    suspend fun searchUsers(query: String): List<UserDto> {
+        val currentUser = getCurrentUser()
+        val response: ApiResponse<List<UserDto>> = client.get(ApiClient.getUrl("/users/search?q=$query&user_id=${currentUser.id}")) {
+            if (ApiClient.authToken != null) {
+                header("Authorization", "Bearer ${ApiClient.authToken}")
+            }
+        }.body()
+        return response.data ?: emptyList()
+    }
+
+    suspend fun createGroup(name: String, description: String?, avatarUrl: String?, members: List<GroupMemberRequest>): GroupDto {
         val currentUser = getCurrentUser()
         val response: ApiResponse<GroupDto> = client.post(ApiClient.getUrl("/collaboration/groups")) {
-            setBody(mapOf(
-                "name" to name,
-                "description" to description,
-                "leader_id" to currentUser.id
+            setBody(CreateGroupRequest(
+                name = name,
+                description = description,
+                avatar_url = avatarUrl,
+                leader_id = currentUser.id,
+                members = members
             ))
             contentType(ContentType.Application.Json)
             if (ApiClient.authToken != null) {
@@ -262,33 +326,68 @@ class AppRepository {
         }
     }
 
-    suspend fun updateUserSettings(settings: Map<String, Any?>) {
-        client.put(ApiClient.getUrl("/settings/user")) {
-            if (ApiClient.authToken != null) {
-                header("Authorization", "Bearer ${ApiClient.authToken}")
-            }
-            contentType(ContentType.Application.Json)
-            setBody(settings)
-        }
-    }
 
-    suspend fun updateProfile(fullName: String, bio: String?) {
-        client.put(ApiClient.getUrl("/users/me")) {
-            if (ApiClient.authToken != null) {
-                header("Authorization", "Bearer ${ApiClient.authToken}")
-            }
-            contentType(ContentType.Application.Json)
-            setBody(mapOf("full_name" to fullName, "bio" to bio))
-        }
-    }
-
-    suspend fun getGroupMembers(groupId: String): List<UserDto> {
-        val response: ApiResponse<List<UserDto>> = client.get(ApiClient.getUrl("/collaboration/groups/$groupId/members")) {
+    suspend fun getGroupMembers(groupId: String): List<GroupMemberDto> {
+        val response: ApiResponse<List<GroupMemberDto>> = client.get(ApiClient.getUrl("/collaboration/groups/$groupId/members")) {
             if (ApiClient.authToken != null) {
                 header("Authorization", "Bearer ${ApiClient.authToken}")
             }
         }.body()
         return response.data ?: emptyList()
+    }
+
+    suspend fun updateGroupInfo(groupId: String, name: String?, description: String?, avatarUrl: String?) {
+        val currentUser = getCurrentUser()
+        client.put(ApiClient.getUrl("/collaboration/groups/$groupId")) {
+            setBody(mapOf(
+                "name" to name,
+                "description" to description,
+                "avatar_url" to avatarUrl,
+                "requester_id" to currentUser.id
+            ).filterValues { it != null })
+            contentType(ContentType.Application.Json)
+            if (ApiClient.authToken != null) {
+                header("Authorization", "Bearer ${ApiClient.authToken}")
+            }
+        }
+    }
+
+    suspend fun addGroupMember(groupId: String, userId: String, role: String) {
+        val currentUser = getCurrentUser()
+        client.post(ApiClient.getUrl("/collaboration/groups/$groupId/members")) {
+            setBody(mapOf(
+                "user_id" to userId,
+                "requester_id" to currentUser.id,
+                "role" to role
+            ))
+            contentType(ContentType.Application.Json)
+            if (ApiClient.authToken != null) {
+                header("Authorization", "Bearer ${ApiClient.authToken}")
+            }
+        }
+    }
+
+    suspend fun updateGroupMemberRole(groupId: String, userId: String, role: String) {
+        client.put(ApiClient.getUrl("/collaboration/groups/$groupId/members/$userId/role")) {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("role" to role))
+            if (ApiClient.authToken != null) {
+                header("Authorization", "Bearer ${ApiClient.authToken}")
+            }
+        }
+    }
+
+    suspend fun removeGroupMember(groupId: String, userId: String) {
+        val currentUser = getCurrentUser()
+        client.delete(ApiClient.getUrl("/collaboration/groups/$groupId/members/$userId")) {
+            setBody(mapOf(
+                "requester_id" to currentUser.id
+            ))
+            contentType(ContentType.Application.Json)
+            if (ApiClient.authToken != null) {
+                header("Authorization", "Bearer ${ApiClient.authToken}")
+            }
+        }
     }
 
     suspend fun getGroupTasks(groupId: String): List<GroupTaskDto> {
@@ -342,4 +441,42 @@ class AppRepository {
         }.body()
         return response.data ?: emptyList()
     }
+
+
+    suspend fun getChatMessages(groupId: String): List<ChatMessageDto> {
+        val response: ApiResponse<List<ChatMessageDto>> = client.get(ApiClient.getUrl("/chat/$groupId")).body()
+        return response.data ?: emptyList()
+    }
+
+    suspend fun sendChatMessage(groupId: String, message: String): ChatMessageDto {
+        val response: ApiResponse<ChatMessageDto> = client.post(ApiClient.getUrl("/chat/send")) {
+            setBody(mapOf("groupId" to groupId, "message" to message))
+            contentType(ContentType.Application.Json)
+        }.body()
+        return response.data ?: throw Exception(response.message ?: "Failed to send message")
+    }
+
+    suspend fun aiBreakdownTask(title: String, description: String): List<String> {
+        val response: ApiResponse<List<String>> = client.post(ApiClient.getUrl("/ai/breakdown")) {
+            setBody(mapOf("title" to title, "description" to description))
+            contentType(ContentType.Application.Json)
+        }.body()
+        return response.data ?: emptyList()
+    }
+
+    suspend fun aiSuggestSchedule(): String {
+        val response: ApiResponse<String> = client.get(ApiClient.getUrl("/ai/suggest-schedule")).body()
+        return response.data ?: "Plan focused!"
+    }
+
+    suspend fun getProductivityStats(): ProductivityStatsDto {
+        val response: ApiResponse<ProductivityStatsDto> = client.get(ApiClient.getUrl("/analytics/productivity")).body()
+        return response.data ?: throw Exception(response.message ?: "Failed to load stats")
+    }
+
+    suspend fun getAmbientSounds(): List<AmbientSoundDto> {
+        val response: List<AmbientSoundDto> = client.get(ApiClient.getUrl("/focus/ambient-sounds")).body()
+        return response
+    }
+
 }

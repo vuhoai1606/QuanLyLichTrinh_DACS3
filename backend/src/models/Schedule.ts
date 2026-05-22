@@ -30,8 +30,8 @@ export class Schedule {
   @Column({ type: "varchar", nullable: true })
   location: string;
 
-  @Column({ type: "varchar", enum: ["TODO", "TASK", "EVENT"] })
-  type: "TODO" | "TASK" | "EVENT";
+  @Column({ type: "varchar", enum: ["TODO", "TASK", "EVENT", "ANNOUNCEMENT"] })
+  type: "TODO" | "TASK" | "EVENT" | "ANNOUNCEMENT";
 
   @Column({ type: "varchar", enum: ["LOW", "MEDIUM", "HIGH"], default: "MEDIUM" })
   priority: "LOW" | "MEDIUM" | "HIGH";

@@ -12,6 +12,7 @@ val TextDark = Color(0xFF003731)
 val SegmentedBg = Color(0xFF333538)
 val SegmentedSelected = Color(0xFF1A1C1F)
 val DividerColor = Color(0x4D3C4946)
+val ErrorColor = Color(0xFFFF4C4C)
 
 // Light Colors
 val LightBackground = Color(0xFFF8F9FA)

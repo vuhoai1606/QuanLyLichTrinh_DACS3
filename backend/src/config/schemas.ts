@@ -11,6 +11,8 @@ export const UserSchema = new EntitySchema({
     full_name: { type: "varchar", length: 100 },
     avatar_url: { type: "varchar", nullable: true },
     bio: { type: "varchar", length: 280, nullable: true },
+    gender: { type: "varchar", nullable: true },
+    dob: { type: "varchar", nullable: true },
     timezone: { type: "varchar", default: "UTC" },
     total_exp: { type: "integer", default: 0 },
     current_rank: { type: "varchar", default: "Rookie" },
@@ -64,6 +66,7 @@ export const GroupSchema = new EntitySchema({
     id: { primary: true, type: "uuid", generated: "uuid" },
     leader_id: { type: "uuid" },
     name: { type: "varchar" },
+    avatar_url: { type: "varchar", nullable: true },
     description: { type: "text", nullable: true },
     created_at: { type: "timestamp", createDate: true },
     updated_at: { type: "timestamp", updateDate: true },
@@ -84,6 +87,7 @@ export const GroupMemberSchema = new EntitySchema({
   columns: {
     group_id: { primary: true, type: "uuid" },
     user_id: { primary: true, type: "uuid" },
+    role: { type: "varchar", enum: ["LEADER", "DEPUTY", "MEMBER"], default: "MEMBER" },
     created_at: { type: "timestamp", createDate: true },
   },
   relations: {
@@ -113,7 +117,7 @@ export const ScheduleSchema = new EntitySchema({
     title: { type: "varchar" },
     description: { type: "text", nullable: true },
     location: { type: "varchar", nullable: true },
-    type: { type: "varchar", enum: ["TODO", "TASK", "EVENT"] },
+    type: { type: "varchar", enum: ["TODO", "TASK", "EVENT", "ANNOUNCEMENT"] },
     status: { type: "varchar", enum: ["PENDING", "DOING", "DONE"], default: "PENDING" },
     priority: { type: "varchar", enum: ["LOW", "MEDIUM", "HIGH"], default: "MEDIUM" },
     start_time: { type: "timestamp", nullable: true },
@@ -168,8 +172,10 @@ export const ReminderSchema = new EntitySchema({
     id: { primary: true, type: "uuid", generated: "uuid" },
     schedule_id: { type: "uuid" },
     trigger_type: { type: "varchar" },
-    custom_minutes: { type: "integer", nullable: true },
-    is_notified: { type: "boolean", default: false },
+    custom_time: { type: "timestamp", nullable: true },
+    is_alarm: { type: "boolean", default: false },
+    sound_uri: { type: "varchar", nullable: true },
+    last_triggered_at: { type: "timestamp", nullable: true },
     created_at: { type: "timestamp", createDate: true },
   },
   relations: {
@@ -312,7 +318,7 @@ export const NotificationSchema = new EntitySchema({
     title: { type: "varchar" },
     message: { type: "text" },
     related_id: { type: "uuid", nullable: true },
-    is_read: { type: "boolean", default: false },
+    ia_read: { type: "boolean", default: false },
     created_at: { type: "timestamp", createDate: true },
   },
   relations: {
@@ -383,6 +389,55 @@ export const TaskCollaboratorSchema = new EntitySchema({
       joinColumn: { name: "schedule_id" },
       onDelete: "CASCADE",
     },
+    user: {
+      type: "many-to-one",
+      target: "User",
+      joinColumn: { name: "user_id" },
+      onDelete: "CASCADE",
+    },
+  },
+});
+
+export const ChatMessageSchema = new EntitySchema({
+  name: "ChatMessage",
+  tableName: "chat_messages",
+  columns: {
+    id: { primary: true, type: "uuid", generated: "uuid" },
+    group_id: { type: "uuid" },
+    sender_id: { type: "uuid" },
+    message: { type: "text" },
+    type: { type: "varchar", enum: ["TEXT", "IMAGE", "FILE"], default: "TEXT" },
+    metadata: { type: "json", nullable: true },
+    created_at: { type: "timestamp", createDate: true },
+  },
+  relations: {
+    group: {
+      type: "many-to-one",
+      target: "Group",
+      joinColumn: { name: "group_id" },
+      onDelete: "CASCADE",
+    },
+    sender: {
+      type: "many-to-one",
+      target: "User",
+      joinColumn: { name: "sender_id" },
+      onDelete: "CASCADE",
+    },
+  },
+});
+
+export const RefreshTokenSchema = new EntitySchema({
+  name: "RefreshToken",
+  tableName: "refresh_tokens",
+  columns: {
+    id: { primary: true, type: "uuid", generated: "uuid" },
+    user_id: { type: "uuid" },
+    token: { type: "text" },
+    expires_at: { type: "timestamp" },
+    is_revoked: { type: "boolean", default: false },
+    created_at: { type: "timestamp", createDate: true },
+  },
+  relations: {
     user: {
       type: "many-to-one",
       target: "User",

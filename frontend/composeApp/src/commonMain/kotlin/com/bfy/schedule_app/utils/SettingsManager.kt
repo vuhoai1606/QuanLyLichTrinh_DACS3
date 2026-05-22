@@ -8,4 +8,7 @@ object SettingsManager {
     var isDarkTheme by mutableStateOf(true)
     var notificationsEnabled by mutableStateOf(false)
     var notificationMessage by mutableStateOf<String?>(null)
+    var rememberMeEnabled by mutableStateOf(false)
+    var rememberedEmail by mutableStateOf("")
+    var rememberedPassword by mutableStateOf("")
 }

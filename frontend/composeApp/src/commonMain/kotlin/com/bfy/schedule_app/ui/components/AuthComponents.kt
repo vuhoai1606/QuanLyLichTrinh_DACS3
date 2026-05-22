@@ -16,6 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.theme.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 
 @Composable
 fun AuthHeader() {
@@ -82,8 +85,11 @@ fun AuthTextField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
+    isPassword: Boolean = false
 ) {
+    var passwordVisible by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
     ) {
@@ -105,7 +111,24 @@ fun AuthTextField(
                 unfocusedBorderColor = BorderColor,
                 textColor = TextPrimary
             ),
-            singleLine = true
+            singleLine = true,
+            visualTransformation = if (isPassword && !passwordVisible) {
+                androidx.compose.ui.text.input.PasswordVisualTransformation()
+            } else {
+                androidx.compose.ui.text.input.VisualTransformation.None
+            },
+            trailingIcon = if (isPassword) {
+                {
+                    val image = if (passwordVisible) {
+                        Icons.Default.Visibility
+                    } else {
+                        Icons.Default.VisibilityOff
+                    }
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = "Toggle password visibility", tint = TextSecondary)
+                    }
+                }
+            } else null
         )
     }
 }

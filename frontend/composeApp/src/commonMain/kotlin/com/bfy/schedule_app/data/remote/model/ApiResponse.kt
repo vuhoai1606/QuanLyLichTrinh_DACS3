@@ -13,5 +13,6 @@ data class ApiResponse<T>(
 @Serializable
 data class AuthResponseData(
     val user: UserDto,
-    val token: String
+    val token: String,
+    val refreshToken: String? = null
 )

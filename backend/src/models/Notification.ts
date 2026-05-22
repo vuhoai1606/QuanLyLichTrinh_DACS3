@@ -25,7 +25,7 @@ export class Notification {
   related_id: string;
 
   @Column({ type: "boolean", default: false })
-  is_read: boolean;
+  ia_read: boolean;
 
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;

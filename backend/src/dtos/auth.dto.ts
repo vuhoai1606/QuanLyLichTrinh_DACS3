@@ -6,6 +6,8 @@ export interface RegisterDTO {
   email: string;
   password: string;
   full_name: string;
+  gender?: string;
+  dob?: string;
 }
 
 export interface LoginDTO {
@@ -18,6 +20,8 @@ export interface UpdateProfileDTO {
   avatar_url?: string;
   bio?: string;
   timezone?: string;
+  gender?: string;
+  dob?: string;
 }
 
 export interface ChangePasswordDTO {

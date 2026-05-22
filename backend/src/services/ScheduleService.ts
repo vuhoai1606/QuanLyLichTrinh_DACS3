@@ -1,4 +1,5 @@
 import { AppDataSource } from "@config/database";
+import { Like, ILike } from "typeorm";
 import { generateUUID, isValidHexColor } from "@utils/validation";
 import { AppError } from "@utils/errors";
 
@@ -49,7 +50,7 @@ export class ScheduleService {
       }
     }
 
-    const { reminders, collaborators, id, ...scheduleData } = data;
+    const { reminders, collaborators, assignees, id, ...scheduleData } = data;
     const finalId = (id && id !== "") ? id : generateUUID();
 
     const schedule = scheduleRepository.create({
@@ -90,15 +91,37 @@ export class ScheduleService {
       await collaboratorRepository.save(collaboratorEntities);
     }
 
+    // Save assignees if provided
+    if (assignees && Array.isArray(assignees)) {
+      const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
+      const assignmentEntities = assignees.map((userId: string) =>
+        assignmentRepository.create({
+          schedule_id: savedSchedule.id,
+          assignee_id: userId,
+          assign_status: "PENDING",
+        })
+      );
+      await assignmentRepository.save(assignmentEntities);
+    }
+
     return this.getScheduleById(savedSchedule.id);
   }
 
   async getSchedulesForUser(userId: string, limit: number = 100, offset: number = 0): Promise<any> {
     try {
       const scheduleRepository = AppDataSource.getRepository("Schedule");
+      const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
+      const { In } = require("typeorm");
+
+      const assignments = await assignmentRepository.find({ where: { assignee_id: userId } });
+      const assignedScheduleIds = assignments.map(a => a.schedule_id);
+
+      const whereClause = assignedScheduleIds.length > 0 
+        ? [ { creator_id: userId }, { id: In(assignedScheduleIds) } ]
+        : { creator_id: userId };
 
       const [schedules, total] = await scheduleRepository.findAndCount({
-        where: { creator_id: userId },
+        where: whereClause,
         order: { created_at: "DESC" },
         skip: offset,
         take: limit,
@@ -130,9 +153,18 @@ export class ScheduleService {
 
   async getTimelineForUser(userId: string, startDate: Date, endDate: Date): Promise<any[]> {
     const scheduleRepository = AppDataSource.getRepository("Schedule");
-    
+    const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
+    const { In } = require("typeorm");
+
+    const assignments = await assignmentRepository.find({ where: { assignee_id: userId } });
+    const assignedScheduleIds = assignments.map(a => a.schedule_id);
+
+    const whereClause = assignedScheduleIds.length > 0 
+      ? [ { creator_id: userId }, { id: In(assignedScheduleIds) } ]
+      : { creator_id: userId };
+
     const schedules = await scheduleRepository.find({
-      where: { creator_id: userId },
+      where: whereClause,
       relations: ["category", "reminders"],
       order: { start_time: "DESC", deadline: "DESC", created_at: "DESC" },
     });
@@ -184,8 +216,9 @@ export class ScheduleService {
 
   async updateSchedule(scheduleId: string, userId: string, updates: any): Promise<any> {
     const scheduleRepository = AppDataSource.getRepository("Schedule");
+    const reminderRepository = AppDataSource.getRepository("Reminder");
     
-    const schedule = await scheduleRepository.findOne({ where: { id: scheduleId } });
+    const schedule = await scheduleRepository.findOne({ where: { id: scheduleId }, relations: ["reminders"] });
     if (!schedule) {
       throw new AppError(404, "Schedule not found", "SCHEDULE_NOT_FOUND");
     }
@@ -194,7 +227,45 @@ export class ScheduleService {
       throw new AppError(403, "Unauthorized to update this schedule", "UNAUTHORIZED");
     }
 
-    Object.assign(schedule, updates);
+    const { reminders, ...otherUpdates } = updates;
+    const oldStatus = schedule.status;
+    
+    Object.assign(schedule, otherUpdates);
+
+    if (otherUpdates.status === "DONE" && oldStatus !== "DONE") {
+      schedule.completed_at = new Date();
+      // Award EXP for completion
+      try {
+        const GamificationService = (await import("./GamificationService")).default;
+        await GamificationService.updateUserRank(schedule.creator_id, 10);
+      } catch (expError) {
+        console.error("Failed to award EXP in updateSchedule:", expError);
+      }
+    }
+
+    // Handle reminders update explicitly to avoid duplicates/orphans
+    if (reminders !== undefined) {
+      // Remove old reminders
+      if (schedule.reminders && schedule.reminders.length > 0) {
+        await reminderRepository.remove(schedule.reminders);
+      }
+      
+      // Add new reminders
+      if (Array.isArray(reminders)) {
+        schedule.reminders = reminders.map((r: any) => 
+          reminderRepository.create({
+            id: generateUUID(),
+            schedule_id: scheduleId,
+            trigger_type: r.trigger_type || "MIN_15",
+            is_alarm: r.is_alarm || false,
+            custom_time: r.custom_time,
+          })
+        );
+      } else {
+        schedule.reminders = [];
+      }
+    }
+
     return scheduleRepository.save(schedule);
   }
 
@@ -284,8 +355,8 @@ export class ScheduleService {
 
     const schedules = await scheduleRepository.find({
       where: [
-        { creator_id: userId, title: { like: `%${query}%` } },
-        { creator_id: userId, description: { like: `%${query}%` } },
+        { creator_id: userId, title: ILike(`%${query}%`) },
+        { creator_id: userId, description: ILike(`%${query}%`) },
       ],
       take: 50,
     });
@@ -403,6 +474,13 @@ export class ScheduleService {
 
     if (status === "DONE") {
       schedule.completed_at = new Date();
+      // Award EXP for completion
+      try {
+        const GamificationService = (await import("./GamificationService")).default;
+        await GamificationService.updateUserRank(schedule.creator_id, 10);
+      } catch (expError) {
+        console.error("Failed to award EXP:", expError);
+      }
     }
 
     return scheduleRepository.save(schedule);

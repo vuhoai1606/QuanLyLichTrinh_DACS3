@@ -12,7 +12,8 @@ data class CollaborationUiState(
     val groups: List<GroupDto> = emptyList(),
     val sharedSchedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val searchResults: List<com.bfy.schedule_app.data.remote.model.UserDto> = emptyList()
 )
 
 class CollaborationViewModel(private val repository: AppRepository = AppRepository()) : ViewModel() {
@@ -43,12 +44,32 @@ class CollaborationViewModel(private val repository: AppRepository = AppReposito
         }
     }
 
-    fun createGroup(name: String, description: String?) {
+    fun searchUsers(query: String) {
+        viewModelScope.launch {
+            if (query.isBlank()) {
+                _uiState.value = _uiState.value.copy(searchResults = emptyList())
+                return@launch
+            }
+            try {
+                val results = repository.searchUsers(query)
+                _uiState.value = _uiState.value.copy(searchResults = results)
+            } catch (e: Exception) {
+                // Ignore search errors or handle silently
+            }
+        }
+    }
+
+    fun clearSearch() {
+        _uiState.value = _uiState.value.copy(searchResults = emptyList())
+    }
+
+    fun createGroup(name: String, description: String?, avatarUrl: String?, members: List<com.bfy.schedule_app.data.remote.model.GroupMemberRequest>, onSuccess: (String) -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                repository.createGroup(name, description)
+                val group = repository.createGroup(name, description, avatarUrl, members)
                 loadGroups()
+                onSuccess(group.id)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

@@ -13,7 +13,8 @@ data class ProfileUiState(
     val focusStats: com.bfy.schedule_app.data.remote.model.FocusStatsDto? = null,
     val badges: List<com.bfy.schedule_app.data.remote.model.BadgeDto> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val successMessage: String? = null
 )
 
 class ProfileViewModel(private val repository: AppRepository = AppRepository()) : ViewModel() {
@@ -37,7 +38,7 @@ class ProfileViewModel(private val repository: AppRepository = AppRepository()) 
                 val badges = try {
                     repository.getBadges()
                 } catch (e: Exception) {
-                    emptyList()
+                    emptyList<com.bfy.schedule_app.data.remote.model.BadgeDto>()
                 }
                 _uiState.value = ProfileUiState(
                     user = user, 
@@ -54,6 +55,21 @@ class ProfileViewModel(private val repository: AppRepository = AppRepository()) 
         }
     }
 
+    fun updateProfile(fullName: String? = null, bio: String? = null, avatarUrl: String? = null, gender: String? = null, dob: String? = null) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, successMessage = null)
+            try {
+                val updatedUser = repository.updateProfile(fullName, bio, avatarUrl, gender, dob)
+                _uiState.value = _uiState.value.copy(user = updatedUser, isLoading = false, successMessage = "Profile updated successfully")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to update profile: ${e.message}"
+                )
+            }
+        }
+    }
+
     fun updateSettings(settings: Map<String, Any?>) {
         viewModelScope.launch {
             try {
@@ -62,5 +78,27 @@ class ProfileViewModel(private val repository: AppRepository = AppRepository()) 
                 // Silent fail for background sync
             }
         }
+    }
+
+    fun changePassword(oldPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, successMessage = null)
+            try {
+                repository.changePassword(oldPassword, newPassword)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    successMessage = "Password changed successfully"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to change password: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun clearMessages() {
+        _uiState.value = _uiState.value.copy(error = null, successMessage = null)
     }
 }

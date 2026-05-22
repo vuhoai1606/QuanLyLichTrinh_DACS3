@@ -30,8 +30,14 @@ export class User {
   @Column({ type: "varchar", nullable: true })
   avatar_url: string;
 
-  @Column({ type: "varchar", length: 280, nullable: true })
+  @Column({ type: "varchar", nullable: true })
   bio: string;
+
+  @Column({ type: "varchar", nullable: true })
+  gender: string;
+
+  @Column({ type: "varchar", nullable: true })
+  dob: string;
 
   @Column({ type: "varchar", default: "UTC" })
   timezone: string;

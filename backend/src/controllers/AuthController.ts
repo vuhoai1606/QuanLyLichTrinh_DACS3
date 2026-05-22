@@ -25,7 +25,7 @@ export class AuthController {
         );
       }
 
-      const result = await authService.register(body.email, body.password, body.full_name);
+      const result = await authService.register(body.email, body.password, body.full_name, body.gender, body.dob);
       logger.info("User registered successfully", { userId: result.user.id, email: body.email });
 
       return successResponse(

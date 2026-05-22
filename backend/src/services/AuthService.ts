@@ -6,7 +6,7 @@ import { AppError } from "@utils/errors";
 import jwt from "jsonwebtoken";
 
 export class AuthService {
-  async register(email: string, password: string, full_name: string): Promise<any> {
+  async register(email: string, password: string, full_name: string, gender?: string, dob?: string): Promise<any> {
     console.log("🔐 Service: Register started for", email);
     const userRepository = AppDataSource.getRepository("User");
     const userSettingsRepository = AppDataSource.getRepository("UserSettings");
@@ -34,6 +34,8 @@ export class AuthService {
       email: email.toLowerCase(),
       password_hash: await hashPassword(password),
       full_name,
+      gender,
+      dob,
     });
 
     const savedUser = await userRepository.save(user);
@@ -50,10 +52,10 @@ export class AuthService {
     await userSettingsRepository.save(settings);
     console.log("✅ User settings saved");
     
-    const token = await this.generateToken(savedUser.id);
-    console.log("✅ Token generated");
+    const { accessToken, refreshToken } = await this.generateTokens(savedUser.id);
+    console.log("✅ Tokens generated");
 
-    return { user: savedUser, token };
+    return { user: savedUser, token: accessToken, refreshToken };
   }
 
   async login(email: string, password: string): Promise<any> {
@@ -73,8 +75,8 @@ export class AuthService {
       throw new AppError(401, "Invalid credentials", "INVALID_CREDENTIALS");
     }
 
-    const token = await this.generateToken(user.id);
-    return { user, token };
+    const { accessToken, refreshToken } = await this.generateTokens(user.id);
+    return { user, token: accessToken, refreshToken };
   }
 
   async googleLogin(googleId: string, email: string, fullName: string, avatarUrl?: string): Promise<any> {
@@ -115,8 +117,8 @@ export class AuthService {
       }
     }
 
-    const token = await this.generateToken(user.id);
-    return { user, token };
+    const { accessToken, refreshToken } = await this.generateTokens(user.id);
+    return { user, token: accessToken, refreshToken };
   }
 
   async getUserById(userId: string): Promise<any> {
@@ -140,6 +142,9 @@ export class AuthService {
 
     if (data.full_name) user.full_name = data.full_name;
     if (data.avatar_url) user.avatar_url = data.avatar_url;
+    if (data.bio !== undefined) user.bio = data.bio;
+    if (data.gender !== undefined) user.gender = data.gender;
+    if (data.dob !== undefined) user.dob = data.dob;
 
     return await userRepository.save(user);
   }
@@ -229,26 +234,27 @@ export class AuthService {
     return { success: true, message: "Password reset successfully" };
   }
 
-  async refreshToken(token: string): Promise<any> {
-    try {
-      const decoded = jwt.verify(token, config.jwt.secret, { ignoreExpiration: true }) as any;
-      
-      if (Date.now() >= decoded.exp * 1000) {
-        const userRepository = AppDataSource.getRepository("User");
-        const user = await userRepository.findOne({ where: { id: decoded.userId } });
+  async refreshToken(oldRefreshToken: string): Promise<any> {
+    const refreshTokenRepository = AppDataSource.getRepository("RefreshToken");
+    
+    const storedToken = await refreshTokenRepository.findOne({ 
+      where: { token: oldRefreshToken, is_revoked: false } 
+    });
 
-        if (!user || !user.is_active) {
-          throw new AppError(401, "User not found or inactive", "INVALID_USER");
-        }
-
-        const newToken = await this.generateToken(decoded.userId);
-        return { token: newToken, expiresIn: "7d" };
+    if (!storedToken || storedToken.expires_at < new Date()) {
+      if (storedToken) {
+        storedToken.is_revoked = true;
+        await refreshTokenRepository.save(storedToken);
       }
-
-      return { token, message: "Token still valid" };
-    } catch (error) {
-      throw new AppError(401, "Invalid token", "INVALID_TOKEN");
+      throw new AppError(401, "Invalid or expired refresh token", "INVALID_REFRESH_TOKEN");
     }
+
+    // Rotate: revoke old, create new
+    storedToken.is_revoked = true;
+    await refreshTokenRepository.save(storedToken);
+
+    const { accessToken, refreshToken } = await this.generateTokens(storedToken.user_id);
+    return { accessToken, refreshToken };
   }
 
   async verifyToken(token: string): Promise<any> {
@@ -271,10 +277,24 @@ export class AuthService {
     }
   }
 
-  private async generateToken(userId: string): Promise<string> {
-    return jwt.sign({ userId }, config.jwt.secret as any, {
-      expiresIn: config.jwt.expiresIn as any,
+  private async generateTokens(userId: string): Promise<{ accessToken: string, refreshToken: string }> {
+    const accessToken = jwt.sign({ userId }, config.jwt.secret as any, {
+      expiresIn: "1h", // Access token short-lived
     } as any);
+
+    const refreshTokenString = generateUUID() + generateUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+    const refreshTokenRepository = AppDataSource.getRepository("RefreshToken");
+    const refreshToken = refreshTokenRepository.create({
+      user_id: userId,
+      token: refreshTokenString,
+      expires_at: expiresAt,
+    });
+    await refreshTokenRepository.save(refreshToken);
+
+    return { accessToken, refreshToken: refreshTokenString };
   }
 }
 

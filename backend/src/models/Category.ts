@@ -15,6 +15,12 @@ export class Category {
   @Column({ type: "varchar" })
   hex_color: string;
 
+  @Column({ type: "timestamp" })
+  created_at: Date;
+
+  @Column({ type: "timestamp" })
+  updated_at: Date;
+
   @ManyToOne(() => User, (user) => user.categories, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;

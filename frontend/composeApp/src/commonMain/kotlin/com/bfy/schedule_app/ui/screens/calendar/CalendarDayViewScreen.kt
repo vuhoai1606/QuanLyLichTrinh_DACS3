@@ -20,6 +20,9 @@ import com.bfy.schedule_app.ui.viewmodel.CalendarViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import com.bfy.schedule_app.utils.Localization
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 
 @Composable
@@ -64,8 +67,18 @@ fun DayHeader(date: kotlinx.datetime.LocalDate) {
 
 @Composable
 fun DayTimeGrid(date: kotlinx.datetime.LocalDate, schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>) {
-    val daySchedules = schedules.filter { 
-        it.start_time?.contains(date.toString()) == true || it.deadline?.contains(date.toString()) == true
+    val daySchedules = schedules.filter { schedule ->
+        val itemDate = try {
+            val startStr = schedule.start_time ?: schedule.deadline
+            if (startStr != null) {
+                Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault()).date
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+        itemDate == date
     }
 
     Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -88,11 +101,23 @@ fun DayTimeGrid(date: kotlinx.datetime.LocalDate, schedules: List<com.bfy.schedu
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             daySchedules.forEach { schedule ->
+                val localTime = try {
+                    val startStr = schedule.start_time ?: schedule.deadline
+                    if (startStr != null) {
+                        val dt = Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault())
+                        "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
+                    } else {
+                        "All Day"
+                    }
+                } catch (e: Exception) {
+                    "All Day"
+                }
+
                 com.bfy.schedule_app.ui.screens.homedashboard.TimelineEventItem(
                     tag = "[${schedule.type.first()}] ${schedule.type}",
                     tagBg = if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF),
                     tagColor = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFAD7BFF),
-                    time = schedule.start_time?.substringAfter("T")?.substringBefore(".") ?: "All Day",
+                    time = localTime,
                     title = schedule.title,
                     subtitle = schedule.location ?: schedule.description ?: "",
                     borderColor = if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF)

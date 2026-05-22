@@ -113,24 +113,25 @@ fun WeekTimeGrid(uiState: CalendarUiState) {
         
         // Display events from backend for the entire week
         uiState.schedules.forEach { schedule ->
-            val startTimeStr = schedule.start_time
-            if (startTimeStr != null && startTimeStr.length >= 10) {
-                var eventDate: LocalDate? = null
+            val startTimeStr = schedule.start_time ?: schedule.deadline
+            if (startTimeStr != null) {
+                var localDateTime: kotlinx.datetime.LocalDateTime? = null
                 try {
-                    eventDate = LocalDate.parse(startTimeStr.substring(0, 10))
+                    localDateTime = Instant.parse(startTimeStr).toLocalDateTime(TimeZone.currentSystemDefault())
                 } catch (e: Exception) {
                     // Ignore parsing error
                 }
 
-                if (eventDate != null) {
-                    // Check if event is within the current week
+                if (localDateTime != null) {
+                    val eventDate = localDateTime.date
+                    val localHour = localDateTime.hour
+                    
                     if (eventDate >= monday && eventDate <= sunday) {
                         val daysBetween = eventDate.toEpochDays() - monday.toEpochDays()
                         
                         if (daysBetween in 0..6) {
-                            val hour = startTimeStr.substringAfter("T").substringBefore(":").toIntOrNull() ?: 9
-                            if (hour in 9..17) {
-                                val topOffset = (hour - 9) * 60
+                            if (localHour in 9..17) {
+                                val topOffset = (localHour - 9) * 60
                                 
                                 Box(
                                     modifier = Modifier

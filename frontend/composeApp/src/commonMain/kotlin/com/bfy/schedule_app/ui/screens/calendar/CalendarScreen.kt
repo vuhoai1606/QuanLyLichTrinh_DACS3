@@ -42,6 +42,10 @@ fun CalendarScreen() {
     val selectedDate = uiState.selectedDate
     var viewType by remember { mutableStateOf(CalendarViewType.MONTH) }
 
+    LaunchedEffect(Unit) {
+        viewModel.loadSchedules()
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.background)) {
         Spacer(modifier = Modifier.height(24.dp))
         val currentMonthYear = "${Localization.getMonth(selectedDate.month)} ${selectedDate.year}"

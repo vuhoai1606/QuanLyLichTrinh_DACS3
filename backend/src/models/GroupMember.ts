@@ -5,16 +5,16 @@ import { User } from "./User";
 @Entity("group_members")
 export class GroupMember {
   @PrimaryColumn("uuid")
-  id: string;
-
-  @Column("uuid")
   group_id: string;
 
-  @Column("uuid")
+  @PrimaryColumn("uuid")
   user_id: string;
 
+  @Column({ type: "varchar", default: "MEMBER" })
+  role: string;
+
   @CreateDateColumn({ type: "timestamp" })
-  joined_at: Date;
+  created_at: Date;
 
   @ManyToOne(() => Group, (group) => group.members, { onDelete: "CASCADE" })
   @JoinColumn({ name: "group_id" })

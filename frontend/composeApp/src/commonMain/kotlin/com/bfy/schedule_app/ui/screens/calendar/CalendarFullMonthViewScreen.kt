@@ -73,6 +73,7 @@ fun MonthGrid(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data
                         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
                         val isToday = dayNum == today.dayOfMonth && today.month == selectedDate.month && today.year == selectedDate.year
                         val isSelected = dayNum == selectedDate.dayOfMonth
+                        val gridDate = LocalDate(selectedDate.year, selectedDate.month, dayNum)
                         
                         Box(
                             modifier = Modifier
@@ -81,7 +82,7 @@ fun MonthGrid(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data
                                 .padding(4.dp)
                                 .clip(CircleShape)
                                 .background(if (isSelected) PrimaryColor else if (isToday) PrimaryColor.copy(alpha = 0.2f) else Color.Transparent)
-                                .clickable { onDateSelected(LocalDate(selectedDate.year, selectedDate.month, dayNum)) },
+                                .clickable { onDateSelected(gridDate) },
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -91,10 +92,19 @@ fun MonthGrid(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data
                                     fontSize = 16.sp,
                                     fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
                                 )
-                                // Indicator dots
-                                val hasSchedules = schedules.any {
-                                    it.start_time?.contains(LocalDate(selectedDate.year, selectedDate.month, dayNum).toString()) == true ||
-                                    it.deadline?.contains(LocalDate(selectedDate.year, selectedDate.month, dayNum).toString()) == true
+                                // Indicator dots in local timezone
+                                val hasSchedules = schedules.any { schedule ->
+                                    val itemDate = try {
+                                        val startStr = schedule.start_time ?: schedule.deadline
+                                        if (startStr != null) {
+                                            Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                        } else {
+                                            null
+                                        }
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+                                    itemDate == gridDate
                                 }
                                 if (hasSchedules) {
                                     Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(if (isSelected) TextDark else Color(0xFFAD7BFF)))
@@ -112,9 +122,18 @@ fun MonthGrid(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data
 
 @Composable
 fun AgendaSection(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>) {
-    val daySchedules = schedules.filter { 
-        // Simple filter for demo, usually would parse ISO string
-        it.start_time?.contains(selectedDate.toString()) == true || it.deadline?.contains(selectedDate.toString()) == true
+    val daySchedules = schedules.filter { schedule ->
+        val itemDate = try {
+            val startStr = schedule.start_time ?: schedule.deadline
+            if (startStr != null) {
+                Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault()).date
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+        itemDate == selectedDate
     }
 
     Column {
@@ -133,11 +152,23 @@ fun AgendaSection(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.
         }
 
         daySchedules.forEach { schedule ->
+            val localTime = try {
+                val startStr = schedule.start_time ?: schedule.deadline
+                if (startStr != null) {
+                    val dt = Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault())
+                    "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
+                } else {
+                    "All Day"
+                }
+            } catch (e: Exception) {
+                "All Day"
+            }
+
              com.bfy.schedule_app.ui.screens.homedashboard.TimelineEventItem(
                 tag = "[${schedule.type.first()}] ${schedule.type}",
                 tagBg = if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF),
                 tagColor = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFAD7BFF),
-                time = schedule.start_time?.substringAfter("T")?.substringBefore(".") ?: "All Day",
+                time = localTime,
                 title = schedule.title,
                 subtitle = schedule.location ?: schedule.description ?: "",
                 borderColor = if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF)

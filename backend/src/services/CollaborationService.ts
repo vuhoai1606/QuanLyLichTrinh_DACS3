@@ -3,26 +3,27 @@ import { generateUUID } from "@utils/validation";
 import { AppError } from "@utils/errors";
 
 export class CollaborationService {
-  async createGroup(userId: string, name: string, description?: string, memberIds: string[] = []): Promise<any> {
+  async createGroup(userId: string, name: string, description?: string, avatar_url?: string, membersList: {user_id: string, role: string}[] = []): Promise<any> {
     const groupRepository = AppDataSource.getRepository("Group");
     const groupMemberRepository = AppDataSource.getRepository("GroupMember");
 
     const group = groupRepository.create({
       name,
       description,
+      avatar_url,
       leader_id: userId,
     });
 
     const savedGroup = await groupRepository.save(group);
 
-    // Add creator as member
-    const members = [{ group_id: savedGroup.id, user_id: userId }];
+    // Add creator as LEADER
+    const members = [{ group_id: savedGroup.id, user_id: userId, role: "LEADER" }];
     
     // Add other members
-    if (memberIds.length > 0) {
-      memberIds.forEach(id => {
-        if (id !== userId) {
-          members.push({ group_id: savedGroup.id, user_id: id });
+    if (membersList && membersList.length > 0) {
+      membersList.forEach(m => {
+        if (m.user_id !== userId) {
+          members.push({ group_id: savedGroup.id, user_id: m.user_id, role: m.role || "MEMBER" });
         }
       });
     }
@@ -32,7 +33,14 @@ export class CollaborationService {
     return this.getGroupDetails(savedGroup.id);
   }
 
-  async addMemberToGroup(group_id: string, user_id: string, requester_id: string): Promise<any> {
+  async getGroupDetails(group_id: string): Promise<any> {
+    const groupRepository = AppDataSource.getRepository("Group");
+    const group = await groupRepository.findOne({ where: { id: group_id } });
+    if (!group) return null;
+    return group;
+  }
+
+  async addMemberToGroup(group_id: string, user_id: string, requester_id: string, role: string = "MEMBER"): Promise<any> {
     const groupRepository = AppDataSource.getRepository("Group");
     const groupMemberRepository = AppDataSource.getRepository("GroupMember");
 
@@ -41,8 +49,9 @@ export class CollaborationService {
       throw new AppError(404, "Group not found", "GROUP_NOT_FOUND");
     }
 
-    if (group.leader_id !== requester_id) {
-      throw new AppError(403, "Only leader can add members", "UNAUTHORIZED");
+    const requesterMember = await groupMemberRepository.findOne({ where: { group_id, user_id: requester_id } });
+    if (!requesterMember || (requesterMember.role !== "LEADER" && requesterMember.role !== "DEPUTY")) {
+      throw new AppError(403, "Only leader or deputy can add members", "UNAUTHORIZED");
     }
 
     const existing = await groupMemberRepository.findOne({ where: { group_id, user_id } });
@@ -53,10 +62,40 @@ export class CollaborationService {
     const member = groupMemberRepository.create({
       group_id,
       user_id,
+      role,
     });
 
     return groupMemberRepository.save(member);
   }
+
+  async removeMemberFromGroup(group_id: string, user_id: string, requester_id: string): Promise<any> {
+    const groupMemberRepository = AppDataSource.getRepository("GroupMember");
+    const groupRepository = AppDataSource.getRepository("Group");
+
+    const group = await groupRepository.findOne({ where: { id: group_id } });
+    if (!group) {
+      throw new AppError(404, "Group not found", "GROUP_NOT_FOUND");
+    }
+
+    const requesterMember = await groupMemberRepository.findOne({ where: { group_id, user_id: requester_id } });
+    const targetMember = await groupMemberRepository.findOne({ where: { group_id, user_id } });
+
+    if (!requesterMember || !targetMember) {
+      throw new AppError(404, "User not in group", "NOT_MEMBER");
+    }
+
+    // Role checks
+    if (requesterMember.role === "MEMBER") {
+      throw new AppError(403, "MEMBER cannot remove others", "UNAUTHORIZED");
+    }
+    if (requesterMember.role === "DEPUTY" && (targetMember.role === "LEADER" || targetMember.role === "DEPUTY")) {
+      throw new AppError(403, "DEPUTY can only remove MEMBER", "UNAUTHORIZED");
+    }
+
+    await groupMemberRepository.remove(targetMember);
+    return { success: true };
+  }
+
 
   async assignScheduleToUser(schedule_id: string, assignee_id: string, leader_id: string): Promise<any> {
     const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
@@ -98,7 +137,9 @@ export class CollaborationService {
         id: m.group.id,
         name: m.group.name,
         description: m.group.description,
+        avatar_url: m.group.avatar_url,
         leader_id: m.group.leader_id,
+        role: m.role,
         created_at: m.group.created_at,
       }));
     } catch (error) {
@@ -146,6 +187,7 @@ export class CollaborationService {
 
     return members.map((m: any) => ({
       ...m.user,
+      role: m.role,
       joined_at: m.created_at,
     }));
   }
@@ -388,19 +430,21 @@ export class CollaborationService {
 
   async updateGroupInfo(group_id: string, requester_id: string, updateData: any): Promise<any> {
     const groupRepository = AppDataSource.getRepository("Group");
+    const groupMemberRepository = AppDataSource.getRepository("GroupMember");
 
     const group = await groupRepository.findOne({ where: { id: group_id } });
     if (!group) {
       throw new AppError(404, "Group not found", "GROUP_NOT_FOUND");
     }
 
-    if (group.leader_id !== requester_id) {
-      throw new AppError(403, "Only leader can update group", "UNAUTHORIZED");
+    const requesterMember = await groupMemberRepository.findOne({ where: { group_id, user_id: requester_id } });
+    if (!requesterMember || (requesterMember.role !== "LEADER" && requesterMember.role !== "DEPUTY")) {
+      throw new AppError(403, "Only LEADER or DEPUTY can update group", "UNAUTHORIZED");
     }
 
     if (updateData.name) group.name = updateData.name;
     if (updateData.description) group.description = updateData.description;
-    if (updateData.icon_url) group.icon_url = updateData.icon_url;
+    if (updateData.avatar_url) group.avatar_url = updateData.avatar_url;
 
     return groupRepository.save(group);
   }

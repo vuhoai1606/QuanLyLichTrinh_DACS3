@@ -17,6 +17,8 @@ import {
   NotificationSchema,
   ShareLogSchema,
   TaskCollaboratorSchema,
+  ChatMessageSchema,
+  RefreshTokenSchema,
 } from "@config/schemas";
 
 export let AppDataSource: DataSource;
@@ -50,6 +52,8 @@ export async function connectDB() {
         NotificationSchema,
         ShareLogSchema,
         TaskCollaboratorSchema,
+        ChatMessageSchema,
+        RefreshTokenSchema,
       ],
       migrations: ["src/migrations/*.ts"],
       subscribers: [],

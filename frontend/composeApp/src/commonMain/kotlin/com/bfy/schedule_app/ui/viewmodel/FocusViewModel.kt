@@ -13,10 +13,14 @@ data class FocusUiState(
     val stats: FocusStatsDto? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val timeLeft: Int = 25 * 60, // 25 minutes in seconds
+    val timeLeft: Int = 25 * 60,
+    val targetMinutes: Int = 25,
+    val presetMinutes: List<Int> = listOf(15, 25, 45, 60, 90),
     val isRunning: Boolean = false,
     val showStartConfirmation: Boolean = false,
-    val showExitConfirmation: Boolean = false
+    val showExitConfirmation: Boolean = false,
+    val ambientSounds: List<com.bfy.schedule_app.data.remote.model.AmbientSoundDto> = emptyList(),
+    val selectedSound: com.bfy.schedule_app.data.remote.model.AmbientSoundDto? = null
 )
 
 class FocusViewModel(private val repository: AppRepository = AppRepository()) : ViewModel() {
@@ -74,7 +78,7 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
             
             // Record completed session to BE
             try {
-                repository.createFocusSession(25, "COMPLETED")
+                repository.createFocusSession(_uiState.value.targetMinutes, "COMPLETED")
                 loadFocusData() // Refresh stats
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to save session: ${e.message}") }
@@ -89,7 +93,26 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
 
     fun resetTimer() {
         pauseTimer()
-        _uiState.update { it.copy(timeLeft = 25 * 60) }
+        _uiState.update { it.copy(timeLeft = it.targetMinutes * 60) }
+    }
+
+    fun setFocusTime(minutes: Int) {
+        val validMinutes = if (minutes < 1) 1 else if (minutes > 1440) 1440 else minutes // Limit between 1 min and 24h
+        if (!_uiState.value.isRunning) {
+            _uiState.update { it.copy(targetMinutes = validMinutes, timeLeft = validMinutes * 60) }
+        }
+    }
+
+    fun incrementTime() {
+        if (!_uiState.value.isRunning) {
+            setFocusTime(_uiState.value.targetMinutes + 5)
+        }
+    }
+
+    fun decrementTime() {
+        if (!_uiState.value.isRunning) {
+            setFocusTime(_uiState.value.targetMinutes - 5)
+        }
     }
 
     fun loadFocusData() {
@@ -97,7 +120,8 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val stats = repository.getFocusStats()
-                _uiState.update { it.copy(stats = stats, isLoading = false) }
+                val sounds = repository.getAmbientSounds()
+                _uiState.update { it.copy(stats = stats, ambientSounds = sounds, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(
@@ -107,5 +131,9 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
                 }
             }
         }
+    }
+
+    fun selectSound(sound: com.bfy.schedule_app.data.remote.model.AmbientSoundDto?) {
+        _uiState.update { it.copy(selectedSound = sound) }
     }
 }

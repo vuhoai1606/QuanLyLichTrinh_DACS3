@@ -5,16 +5,19 @@ import { User } from "./User";
 @Entity("schedule_assignments")
 export class ScheduleAssignment {
   @PrimaryColumn("uuid")
-  id: string;
-
-  @Column("uuid")
   schedule_id: string;
 
-  @Column("uuid")
+  @PrimaryColumn("uuid")
   assignee_id: string;
 
   @Column({ type: "varchar", enum: ["PENDING", "ACCEPTED", "DECLINED"], default: "PENDING" })
   assign_status: "PENDING" | "ACCEPTED" | "DECLINED";
+
+  @Column({ type: "timestamp" })
+  created_at: Date;
+
+  @Column({ type: "timestamp" })
+  updated_at: Date;
 
   @ManyToOne(() => Schedule, (schedule) => schedule.assignments, { onDelete: "CASCADE" })
   @JoinColumn({ name: "schedule_id" })

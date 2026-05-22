@@ -9,6 +9,6 @@ data class NotificationDto(
     val title: String,
     val message: String,
     val type: String,
-    val is_read: Boolean,
+    val ia_read: Boolean,
     val created_at: String
 )

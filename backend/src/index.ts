@@ -17,6 +17,9 @@ import { reportRoutes } from "@routes/reports";
 import { settingsRoutes } from "@routes/settings";
 import { adminRoutes } from "@routes/admin";
 import { monitoringRoutes } from "@routes/monitoring";
+import { chatRoutes } from "@routes/chat";
+import { analyticsRoutes } from "@routes/analytics";
+import { aiRoutes } from "@routes/ai";
 import { logger } from "@utils/logger";
 import { validateEnvironment, printStartupConfig } from "@utils/env-validator";
 import { APP_CONSTANTS } from "@constants/app.constants";
@@ -25,11 +28,26 @@ import { HealthCheckService } from "@services/HealthCheckService";
 import { MetricsCollector, RequestMetrics } from "@services/MetricsCollector";
 import { AlertManager, setupDefaultAlerts } from "@services/AlertManager";
 import gamificationService from "@services/GamificationService";
+// import { websocket } from "@elysiajs/websocket"; // Temporarily disabled due to compatibility issues
+import { rateLimit } from "elysia-rate-limit";
+import webSocketService from "@services/WebSocketService";
+import { verifyToken } from "@utils/jwt";
 
 /**
  * Initialize and configure Elysia server
  */
 const app = new Elysia()
+  // .use(websocket()) // Temporarily disabled due to compatibility issues
+  .use(rateLimit({
+    max: 100,
+    duration: 60000, // 1 minute
+    errorResponse: {
+      status: 429,
+      success: false,
+      message: "Too many requests",
+      code: "RATE_LIMIT_EXCEEDED"
+    }
+  }))
   .onBeforeHandle((ctx) => {
     corsMiddleware(ctx);
   })
@@ -80,7 +98,12 @@ const app = new Elysia()
       .use(reportRoutes)
       .use(settingsRoutes)
       .use(adminRoutes)
+      .use(chatRoutes)
+      .use(analyticsRoutes)
+      .use(aiRoutes)
   )
+  // WebSocket handler disabled - WebSocket plugin temporarily disabled due to compatibility issues
+  // .ws("/ws", {...})
   .group("/monitoring", (app) => app.use(monitoringRoutes))
   .onError(({ error, code, request }) => {
     logger.error(`HTTP Error [${code}]:`, error instanceof Error ? error : new Error(String(error)));

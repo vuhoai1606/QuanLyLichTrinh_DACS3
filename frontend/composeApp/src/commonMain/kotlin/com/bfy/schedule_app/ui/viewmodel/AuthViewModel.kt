@@ -13,6 +13,7 @@ data class AuthUiState(
     val error: String? = null,
     val isAuthenticated: Boolean = false,
     val token: String? = null,
+    val refreshToken: String? = null,
     val userId: String? = null
 )
 
@@ -29,6 +30,7 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
                     isLoading = false,
                     isAuthenticated = true,
                     token = response.token,
+                    refreshToken = response.refreshToken,
                     userId = response.user.id
                 )
             } catch (e: Exception) {
@@ -37,15 +39,16 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
         }
     }
 
-    fun register(fullName: String, email: String, password: String) {
+    fun register(fullName: String, email: String, password: String, gender: String? = null, dob: String? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = repository.register(fullName, email, password)
+                val response = repository.register(fullName, email, password, gender, dob)
                 _uiState.value = AuthUiState(
                     isLoading = false,
                     isAuthenticated = true,
                     token = response.token,
+                    refreshToken = response.refreshToken,
                     userId = response.user.id
                 )
             } catch (e: Exception) {
@@ -63,6 +66,7 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
                     isLoading = false,
                     isAuthenticated = true,
                     token = response.token,
+                    refreshToken = response.refreshToken,
                     userId = response.user.id
                 )
             } catch (e: Exception) {

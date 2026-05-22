@@ -8,6 +8,8 @@ import com.bfy.schedule_app.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import io.ktor.client.plugins.websocket.*
+import io.ktor.websocket.*
 
 data class HomeUiState(
     val user: UserDto? = null,
@@ -22,6 +24,28 @@ class HomeViewModel(private val repository: AppRepository = AppRepository()) : V
 
     init {
         loadDashboardData()
+        observeRealtimeUpdates()
+    }
+
+    private fun observeRealtimeUpdates() {
+        viewModelScope.launch {
+            val token = com.bfy.schedule_app.data.remote.api.ApiClient.authToken ?: return@launch
+            try {
+                com.bfy.schedule_app.data.remote.api.ApiClient.client.webSocket(
+                    com.bfy.schedule_app.data.remote.api.ApiClient.getWsUrl(token)
+                ) {
+                    for (frame in incoming) {
+                        if (frame is io.ktor.websocket.Frame.Text) {
+                            val text = frame.readText()
+                            // When a realtime update happens (e.g. task updated), reload data
+                            loadDashboardData()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Handle socket error (silent retry or log)
+            }
+        }
     }
 
     fun loadDashboardData() {

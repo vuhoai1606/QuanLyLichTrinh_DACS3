@@ -1,9 +1,11 @@
 package com.bfy.schedule_app.ui.screens.forgotpassword
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -22,6 +24,8 @@ import com.bfy.schedule_app.ui.components.PrimaryButton
 import com.bfy.schedule_app.ui.theme.*
 import com.bfy.schedule_app.ui.viewmodel.AuthViewModel
 import com.bfy.schedule_app.utils.Localization
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.focusRequester
 
 enum class ForgotPasswordStep {
     EMAIL, OTP, RESET, SUCCESS
@@ -110,12 +114,70 @@ fun ForgotPasswordScreen(
                     modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
                 )
 
-                AuthTextField(
-                    label = "OTP Code",
-                    value = otp,
-                    onValueChange = { if (it.length <= 6) otp = it },
-                    placeholder = "123456"
-                )
+                val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+                val otpLength = 6
+
+                LaunchedEffect(Unit) {
+                    try {
+                        focusRequester.requestFocus()
+                    } catch (e: Exception) {}
+                }
+
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = otp,
+                        onValueChange = { newValue ->
+                            if (newValue.length <= otpLength && newValue.all { it.isDigit() }) {
+                                otp = newValue
+                            }
+                        },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
+                        modifier = Modifier
+                            .size(1.dp)
+                            .focusRequester(focusRequester)
+                            .alpha(0f)
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        for (i in 0 until otpLength) {
+                            val digit = otp.getOrNull(i)?.toString() ?: ""
+                            val isCurrent = i == otp.length
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(SurfaceColor)
+                                    .border(
+                                        width = 2.dp,
+                                        color = if (isCurrent) PrimaryColor else BorderColor,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        try {
+                                            focusRequester.requestFocus()
+                                        } catch (e: Exception) {}
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = digit,
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
 
                 if (uiState.error != null) {
                     Text(uiState.error!!, color = Color.Red, fontSize = 12.sp)

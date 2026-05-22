@@ -161,7 +161,8 @@ fun CollaborationScreen(onGroupClick: (String) -> Unit) {
                     val schedule = uiState.sharedSchedules[index]
                     com.bfy.schedule_app.ui.screens.homedashboard.TimelineCard(
                         schedule = schedule,
-                        onClick = { }
+                        onClick = { },
+                        onStatusChange = { viewModel.loadGroups() }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -170,41 +171,12 @@ fun CollaborationScreen(onGroupClick: (String) -> Unit) {
     }
 
     if (showCreateDialog) {
-        androidx.compose.material3.AlertDialog(
+        CreateGroupDialog(
+            viewModel = viewModel,
             onDismissRequest = { showCreateDialog = false },
-            title = { androidx.compose.material3.Text(Localization.get("add_category_title") ?: "Create New Group") }, // Reusing keys or defaults
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    androidx.compose.material3.OutlinedTextField(
-                        value = newGroupName,
-                        onValueChange = { newGroupName = it },
-                        label = { androidx.compose.material3.Text("Group Name") },
-                        singleLine = true
-                    )
-                    androidx.compose.material3.OutlinedTextField(
-                        value = newGroupDesc,
-                        onValueChange = { newGroupDesc = it },
-                        label = { androidx.compose.material3.Text("Description (Optional)") },
-                        minLines = 3
-                    )
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    if (newGroupName.isNotBlank()) {
-                        viewModel.createGroup(newGroupName, newGroupDesc)
-                        showCreateDialog = false
-                        newGroupName = ""
-                        newGroupDesc = ""
-                    }
-                }) {
-                    androidx.compose.material3.Text(Localization.get("add"))
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showCreateDialog = false }) {
-                    androidx.compose.material3.Text(Localization.get("cancel"))
-                }
+            onSuccess = { groupId ->
+                showCreateDialog = false
+                onGroupClick(groupId)
             }
         )
     }

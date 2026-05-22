@@ -224,6 +224,28 @@ class UserService {
       throw error;
     }
   }
+
+  async updateProfile(userId: string, data: { full_name?: string; bio?: string; avatar_url?: string }) {
+    try {
+      const userRepo = AppDataSource.getRepository("User");
+      const user = await userRepo.findOne({ where: { id: userId } });
+
+      if (!user) throw new Error("User not found");
+
+      if (data.full_name !== undefined) user.full_name = data.full_name;
+      if (data.bio !== undefined) user.bio = data.bio;
+      if (data.avatar_url !== undefined) user.avatar_url = data.avatar_url;
+
+      const savedUser = await userRepo.save(user);
+      
+      // Return updated profile without sensitive data
+      const { password_hash, password_reset_token, password_reset_expires, ...profile } = savedUser as any;
+      return profile;
+    } catch (error) {
+      console.error("❌ Update profile error:", error);
+      throw error;
+    }
+  }
 }
 
 export default new UserService();

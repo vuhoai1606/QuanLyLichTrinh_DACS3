@@ -11,5 +11,8 @@ data class UserDto(
     val bio: String? = null,
     val total_exp: Int = 0,
     val current_rank: String = "Rookie",
+    val timezone: String? = null,
+    val gender: String? = null,
+    val dob: String? = null,
     val is_active: Boolean = true
 )

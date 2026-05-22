@@ -106,7 +106,7 @@ fun CreateNewItemScreen(
         list
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     val segments = listOf(Localization.get("task"), Localization.get("event"))
     val repeatOptions = listOf(
         Localization.get("never"), 
@@ -161,10 +161,69 @@ fun CreateNewItemScreen(
     var alarmSoundIndex by remember { mutableStateOf(0) }
     var countdownEnabled by remember { mutableStateOf(false) }
 
+
     var titleError by remember { mutableStateOf<String?>(null) }
     var taskTimeError by remember { mutableStateOf<String?>(null) }
     var eventTimeError by remember { mutableStateOf<String?>(null) }
     var showDiscardDialog by remember { mutableStateOf(false) }
+
+    // New Time Picker States
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+    var startHour by remember { mutableStateOf(9) }
+    var startMinute by remember { mutableStateOf(0) }
+    var endHour by remember { mutableStateOf(10) }
+    var endMinute by remember { mutableStateOf(0) }
+
+    // Pre-fill logic
+    LaunchedEffect(initialSchedule, categories) {
+        if (initialSchedule != null) {
+            // Category
+            val catIndex = categories.indexOfFirst { it.name == initialSchedule.category_name }
+            if (catIndex != -1) selectedCategoryIndex = catIndex
+
+            // Time parsing
+            val timeSource = initialSchedule.start_time ?: initialSchedule.deadline
+            timeSource?.let {
+                try {
+                    val dt = Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault())
+                    startHour = dt.hour
+                    startMinute = dt.minute
+                } catch(e: Exception) {}
+            }
+            initialSchedule.end_time?.let {
+                try {
+                    val dt = Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault())
+                    endHour = dt.hour
+                    endMinute = dt.minute
+                } catch(e: Exception) {}
+            }
+            
+            isAllDay = initialSchedule.is_all_day == true
+            
+            // Reminders
+            selectedReminderKeys.clear()
+            initialSchedule.reminders?.forEach { reminder ->
+                selectedReminderKeys.add(reminder.trigger_type)
+            }
+            alarmEnabled = initialSchedule.reminders?.any { it.is_alarm } == true
+            countdownEnabled = initialSchedule.is_countdown_enabled == true
+            
+            // Repeat/Recurrence
+            initialSchedule.rrule?.let { rrule ->
+                repeatIndex = when {
+                    rrule.contains("FREQ=DAILY") -> 1
+                    rrule.contains("FREQ=WEEKLY") -> 3
+                    rrule.contains("FREQ=MONTHLY") -> 4
+                    else -> 0
+                }
+            }
+        }
+    }
+
+    fun formatTime(hour: Int, minute: Int): String {
+        return "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+    }
 
     fun isDirty(): Boolean {
         return title.isNotBlank() ||
@@ -201,9 +260,27 @@ fun CreateNewItemScreen(
         return true
     }
 
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { targetValue ->
+            if (targetValue == androidx.compose.material3.SheetValue.Hidden) {
+                if (isDirty()) {
+                    showDiscardDialog = true
+                    false
+                } else {
+                    true
+                }
+            } else {
+                true
+            }
+        }
+    )
+
     ModalBottomSheet(
         onDismissRequest = {
-            if (isDirty()) showDiscardDialog = true else onDismiss()
+            if (!isDirty()) {
+                onDismiss()
+            }
         },
         sheetState = sheetState,
         dragHandle = {
@@ -378,54 +455,22 @@ fun CreateNewItemScreen(
                         onCheckedChange = { isAllDay = it }
                     )
 
-                    var eventStartExpanded by remember { mutableStateOf(false) }
                     Box {
                         FormSelectorRow(
                             label = Localization.get("start_time"),
-                            value = eventTimeOptions[eventStartIndex],
-                            onClick = { eventStartExpanded = true },
+                            value = formatTime(startHour, startMinute),
+                            onClick = { showStartTimePicker = true },
                             enabled = !isAllDay
                         )
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = eventStartExpanded && !isAllDay,
-                            onDismissRequest = { eventStartExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1E2023))
-                        ) {
-                            eventTimeOptions.forEachIndexed { index, option ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(option, color = Color.White) },
-                                    onClick = {
-                                        eventStartIndex = index
-                                        eventStartExpanded = false
-                                    }
-                                )
-                            }
-                        }
                     }
                     
-                    var eventEndExpanded by remember { mutableStateOf(false) }
                     Box {
                         FormSelectorRow(
                             label = Localization.get("end_time"),
-                            value = eventTimeOptions[eventEndIndex],
-                            onClick = { eventEndExpanded = true },
+                            value = formatTime(endHour, endMinute),
+                            onClick = { showEndTimePicker = true },
                             enabled = !isAllDay
                         )
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = eventEndExpanded && !isAllDay,
-                            onDismissRequest = { eventEndExpanded = false },
-                            modifier = Modifier.background(Color(0xFF1E2023))
-                        ) {
-                            eventTimeOptions.forEachIndexed { index, option ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(option, color = Color.White) },
-                                    onClick = {
-                                        eventEndIndex = index
-                                        eventEndExpanded = false
-                                    }
-                                )
-                            }
-                        }
                     }
 
                     Column(
@@ -571,13 +616,23 @@ fun CreateNewItemScreen(
                                 }
 
                                 val startTimeStr = if (setReminder) {
-                                    if (isAllDay) "${today}T00:00:00.000Z"
-                                    else "${today}T${eventTimeOptions[eventStartIndex]}:00.000Z"
+                                    if (isAllDay) {
+                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, 0, 0)
+                                        dt.toInstant(TimeZone.currentSystemDefault()).toString()
+                                    } else {
+                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, startHour, startMinute)
+                                        dt.toInstant(TimeZone.currentSystemDefault()).toString()
+                                    }
                                 } else null
 
                                 val endTimeStr = if (setReminder) {
-                                    if (isAllDay) "${today}T23:59:59.000Z"
-                                    else "${today}T${eventTimeOptions[eventEndIndex]}:00.000Z"
+                                    if (isAllDay) {
+                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, 23, 59)
+                                        dt.toInstant(TimeZone.currentSystemDefault()).toString()
+                                    } else {
+                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, endHour, endMinute)
+                                        dt.toInstant(TimeZone.currentSystemDefault()).toString()
+                                    }
                                 } else null
 
                                 val recurrenceStr = when(repeatIndex) {
@@ -598,7 +653,10 @@ fun CreateNewItemScreen(
                                         deadline = endTimeStr,
                                         isAllDay = isAllDay,
                                         recurrence = recurrenceStr,
-                                        reminders = selectedReminderKeys.toList()
+                                        reminders = selectedReminderKeys.toList(),
+                                        categoryName = categories[selectedCategoryIndex].name,
+                                        isAlarm = alarmEnabled,
+                                        isCountdown = countdownEnabled
                                     )
                                 } else {
                                     viewModel.createItem(
@@ -610,7 +668,10 @@ fun CreateNewItemScreen(
                                         deadline = endTimeStr,
                                         isAllDay = isAllDay,
                                         recurrence = recurrenceStr,
-                                        reminders = selectedReminderKeys.toList()
+                                        reminders = selectedReminderKeys.toList(),
+                                        categoryName = categories[selectedCategoryIndex].name,
+                                        isAlarm = alarmEnabled,
+                                        isCountdown = countdownEnabled
                                     )
                                 }
                             }
@@ -652,7 +713,10 @@ fun CreateNewItemScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showDiscardDialog = false
-                    onDismiss()
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
                 }) {
                     Text(Localization.get("discard_btn"))
                 }
@@ -716,6 +780,79 @@ fun CreateNewItemScreen(
             }
         )
     }
+
+    if (showStartTimePicker) {
+        BFYTimePickerDialog(
+            initialHour = startHour,
+            initialMinute = startMinute,
+            onDismiss = { showStartTimePicker = false },
+            onConfirm = { h, m ->
+                startHour = h
+                startMinute = m
+                showStartTimePicker = false
+            }
+        )
+    }
+
+    if (showEndTimePicker) {
+        BFYTimePickerDialog(
+            initialHour = endHour,
+            initialMinute = endMinute,
+            onDismiss = { showEndTimePicker = false },
+            onConfirm = { h, m ->
+                endHour = h
+                endMinute = m
+                showEndTimePicker = false
+            }
+        )
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun BFYTimePickerDialog(
+    initialHour: Int,
+    initialMinute: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit
+) {
+    val timePickerState = androidx.compose.material3.rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = true
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onConfirm(timePickerState.hour, timePickerState.minute) }) {
+                Text(Localization.get("ok") ?: "OK", color = Color(0xFF59DBC7))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(Localization.get("cancel") ?: "Cancel", color = Color.Gray)
+            }
+        },
+        title = { Text(Localization.get("set_time") ?: "Set Time", color = Color.White) },
+        text = {
+            androidx.compose.material3.TimePicker(
+                state = timePickerState,
+                colors = androidx.compose.material3.TimePickerDefaults.colors(
+                    clockDialColor = Color(0xFF1E2023),
+                    selectorColor = Color(0xFF59DBC7),
+                    containerColor = Color(0xFF282A2D),
+                    periodSelectorSelectedContainerColor = Color(0xFF59DBC7),
+                    periodSelectorUnselectedContainerColor = Color(0xFF1E2023),
+                    timeSelectorSelectedContainerColor = Color(0x3359DBC7),
+                    timeSelectorUnselectedContainerColor = Color(0xFF1E2023),
+                    timeSelectorSelectedContentColor = Color(0xFF59DBC7),
+                    timeSelectorUnselectedContentColor = Color.White
+                )
+            )
+        },
+        containerColor = Color(0xFF282A2D)
+    )
 }
 
 @Composable

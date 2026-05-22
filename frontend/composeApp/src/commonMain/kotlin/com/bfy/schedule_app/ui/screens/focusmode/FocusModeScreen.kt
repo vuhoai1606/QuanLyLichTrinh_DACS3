@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.theme.*
 import com.bfy.schedule_app.data.remote.model.*
 import com.bfy.schedule_app.ui.viewmodel.FocusViewModel
+import androidx.compose.foundation.BorderStroke
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.Lifecycle
@@ -61,6 +62,9 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
     com.bfy.schedule_app.BackHandlerWrapper(enabled = uiState.isRunning) {
         viewModel.triggerExitConfirmation()
     }
+
+    var showTimePickerDialog by remember { mutableStateOf(false) }
+    var tempMinutes by remember(uiState.targetMinutes) { mutableStateOf(uiState.targetMinutes.toFloat()) }
     
     Box(
 
@@ -126,7 +130,7 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                     modifier = Modifier
                         .fillMaxSize()
                         .drawBehind {
-                            val totalTime = 25 * 60f
+                            val totalTime = uiState.targetMinutes * 60f
                             val progress = uiState.timeLeft / totalTime
                             drawArc(
                                 color = Color(0xFF333538),
@@ -147,7 +151,6 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                         }
                 )
 
-                // Inner Circle
                 Box(
                     modifier = Modifier
                         .fillMaxSize(0.9f)
@@ -157,7 +160,10 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.clickable(enabled = !uiState.isRunning) {
+                            showTimePickerDialog = true
+                        }
                     ) {
                         val minutes = uiState.timeLeft / 60
                         val seconds = uiState.timeLeft % 60
@@ -170,12 +176,20 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = Localization.get("minutes_label").uppercase(),
-                            color = Color(0xFFBBCAC5),
+                            text = (Localization.get("minutes_label") ?: "MINUTES").uppercase(),
+                            color = if (!uiState.isRunning) Color(0xFF59DBC7) else Color(0xFFBBCAC5),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 1.2.sp
                         )
+                        if (!uiState.isRunning) {
+                            Text(
+                                text = "Tap to edit",
+                                color = Color(0xFF59DBC7).copy(alpha = 0.6f),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Light
+                            )
+                        }
                     }
                 }
 
@@ -290,6 +304,92 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                 dismissButton = {
                     TextButton(onClick = { viewModel.cancelExitFocus() }) {
                         Text(Localization.get("focus_stay_btn"), color = Color.Gray)
+                    }
+                },
+                containerColor = Color(0xFF1E2023),
+                titleContentColor = Color.White,
+                textContentColor = Color(0xFFBBCAC5)
+            )
+        }
+
+        if (showTimePickerDialog) {
+            var inputString by remember { mutableStateOf(uiState.targetMinutes.toString()) }
+            var isError by remember { mutableStateOf(false) }
+            val parsedMinutes = inputString.toIntOrNull()
+            val isValid = parsedMinutes != null && parsedMinutes in 15..180
+
+            AlertDialog(
+                onDismissRequest = { showTimePickerDialog = false },
+                title = { Text(text = "Setup Focus Time", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Enter minutes (15 - 180)",
+                            fontSize = 14.sp,
+                            color = Color(0xFFBBCAC5)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = inputString,
+                            onValueChange = { newValue ->
+                                if (newValue.all { it.isDigit() } && newValue.length <= 3) {
+                                    inputString = newValue
+                                    isError = newValue.toIntOrNull()?.let { it !in 15..180 } ?: true
+                                }
+                            },
+                            singleLine = true,
+                            isError = isError,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = if (isError) Color.Red else Color(0xFF59DBC7),
+                                unfocusedBorderColor = if (isError) Color.Red else Color.Gray,
+                                cursorColor = Color(0xFF59DBC7)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (isError) {
+                            Text(
+                                text = "Must be between 15 and 180 minutes",
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(15, 25, 45, 60, 90, 120, 180).forEach { mins ->
+                                AssistChip(
+                                    onClick = { 
+                                        inputString = mins.toString()
+                                        isError = false
+                                    },
+                                    label = { Text("$mins") },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        labelColor = Color.White
+                                    )
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (isValid && parsedMinutes != null) {
+                                viewModel.setFocusTime(parsedMinutes)
+                                showTimePickerDialog = false
+                            }
+                        },
+                        enabled = isValid,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF59DBC7))
+                    ) {
+                        Text("Save", color = Color(0xFF003731))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTimePickerDialog = false }) {
+                        Text("Cancel", color = Color.Gray)
                     }
                 },
                 containerColor = Color(0xFF1E2023),

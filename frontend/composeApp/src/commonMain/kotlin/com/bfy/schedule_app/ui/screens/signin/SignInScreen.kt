@@ -19,6 +19,7 @@ import com.bfy.schedule_app.ui.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import com.bfy.schedule_app.utils.Localization
+import com.bfy.schedule_app.utils.SettingsManager
 
 
 @Composable
@@ -27,8 +28,9 @@ fun SignInScreen(
     onSignUpClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {}
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(if (SettingsManager.rememberMeEnabled) SettingsManager.rememberedEmail else "") }
+    var password by remember { mutableStateOf(if (SettingsManager.rememberMeEnabled) SettingsManager.rememberedPassword else "") }
+    var rememberMe by remember { mutableStateOf(SettingsManager.rememberMeEnabled) }
     
     val viewModel: AuthViewModel = viewModel { AuthViewModel() }
     val uiState by viewModel.uiState.collectAsState()
@@ -75,10 +77,27 @@ fun SignInScreen(
                 label = Localization.get("password"),
                 value = password,
                 onValueChange = { password = it },
-                placeholder = "••••••••"
+                placeholder = "••••••••",
+                isPassword = true
             )
 
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material.Checkbox(
+                        checked = rememberMe,
+                        onCheckedChange = { rememberMe = it },
+                        colors = androidx.compose.material.CheckboxDefaults.colors(
+                            checkedColor = PrimaryColor,
+                            uncheckedColor = BorderColor,
+                            checkmarkColor = TextDark
+                        )
+                    )
+                    Text("Remember me", color = TextSecondary, fontSize = 12.sp)
+                }
                 Text(
                     text = Localization.get("forgot_password") ?: "Forgot Password?",
                     color = PrimaryColor,
@@ -95,7 +114,17 @@ fun SignInScreen(
 
             PrimaryButton(
                 text = if (uiState.isLoading) Localization.get("signing_in") else Localization.get("sign_in"),
-                onClick = { viewModel.login(email, password) }
+                onClick = { 
+                    SettingsManager.rememberMeEnabled = rememberMe
+                    if (rememberMe) {
+                        SettingsManager.rememberedEmail = email
+                        SettingsManager.rememberedPassword = password
+                    } else {
+                        SettingsManager.rememberedEmail = ""
+                        SettingsManager.rememberedPassword = ""
+                    }
+                    viewModel.login(email, password) 
+                }
             )
             
             DividerWithText(Localization.get("or"))

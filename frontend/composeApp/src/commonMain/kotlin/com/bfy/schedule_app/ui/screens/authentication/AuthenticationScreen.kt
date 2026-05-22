@@ -19,6 +19,16 @@ import com.bfy.schedule_app.ui.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import com.bfy.schedule_app.utils.Localization
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.IconButton
+import androidx.compose.material.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 
 
 @Composable
@@ -30,7 +40,13 @@ fun AuthenticationScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("Male") }
+    var dob by remember { mutableStateOf("") }
     
+    var captchaNum1 by remember { mutableStateOf((2..9).random()) }
+    var captchaNum2 by remember { mutableStateOf((2..9).random()) }
+    var captchaAnswer by remember { mutableStateOf("") }
+
     val viewModel: AuthViewModel = viewModel { AuthViewModel() }
     val uiState by viewModel.uiState.collectAsState()
 
@@ -52,7 +68,7 @@ fun AuthenticationScreen(
             modifier = Modifier
                 .widthIn(max = 400.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 50.dp),
+                .padding(horizontal = 24.dp, vertical = 20.dp), // reduced vertical padding to fit more fields
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AuthHeader()
@@ -81,19 +97,83 @@ fun AuthenticationScreen(
                 placeholder = "alex@example.com"
             )
             
+            // Gender field
+            Text("Gender", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 4.dp))
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Male", "Female", "Other").forEach { g ->
+                    val isSelected = gender == g
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) PrimaryColor else SurfaceColor)
+                            .border(1.dp, if (isSelected) PrimaryColor else BorderColor, RoundedCornerShape(8.dp))
+                            .clickable { gender = g }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(g, color = if (isSelected) TextDark else TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Date of birth
+            AuthTextField(
+                label = "Date of Birth (DD/MM/YYYY)",
+                value = dob,
+                onValueChange = { dob = it },
+                placeholder = "15/08/2000"
+            )
+
             AuthTextField(
                 label = Localization.get("password"),
                 value = password,
                 onValueChange = { password = it },
-                placeholder = "••••••••"
+                placeholder = "••••••••",
+                isPassword = true
             )
 
             AuthTextField(
                 label = Localization.get("confirm_password") ?: "Confirm Password",
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                placeholder = "••••••••"
+                placeholder = "••••••••",
+                isPassword = true
             )
+            
+            // Captcha field
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                Text(
+                    text = "Security Captcha: What is $captchaNum1 + $captchaNum2?",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = captchaAnswer,
+                        onValueChange = { captchaAnswer = it },
+                        placeholder = { Text("Answer", color = BorderColor) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            backgroundColor = SurfaceColor,
+                            focusedBorderColor = PrimaryColor,
+                            unfocusedBorderColor = BorderColor,
+                            textColor = TextPrimary
+                        ),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(onClick = {
+                        captchaNum1 = (2..9).random()
+                        captchaNum2 = (2..9).random()
+                        captchaAnswer = ""
+                    }) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Refresh, contentDescription = "Refresh Captcha", tint = PrimaryColor)
+                    }
+                }
+            }
             
             if (uiState.error != null || localError != null) {
                 Text(uiState.error ?: localError!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
@@ -102,13 +182,20 @@ fun AuthenticationScreen(
             PrimaryButton(
                 text = if (uiState.isLoading) Localization.get("signing_up") else Localization.get("sign_up"),
                 onClick = { 
+                    val captchaAnswerInt = captchaAnswer.toIntOrNull()
                     if (password != confirmPassword) {
                         localError = "Passwords do not match"
                     } else if (email.isBlank() || !email.contains("@")) {
                         localError = "Invalid email format"
+                    } else if (captchaAnswerInt == null || captchaAnswerInt != (captchaNum1 + captchaNum2)) {
+                        localError = "Incorrect Captcha answer"
+                        // refresh captcha
+                        captchaNum1 = (2..9).random()
+                        captchaNum2 = (2..9).random()
+                        captchaAnswer = ""
                     } else {
                         localError = null
-                        viewModel.register(fullName, email, password) 
+                        viewModel.register(fullName, email, password, gender, dob) 
                     }
                 }
             )

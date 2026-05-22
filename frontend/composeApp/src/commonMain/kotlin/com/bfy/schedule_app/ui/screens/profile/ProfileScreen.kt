@@ -11,6 +11,8 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +43,24 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
     val user = uiState.user
     val focusStats = uiState.focusStats
     
+    var showEditProfileScreen by remember { mutableStateOf(false) }
+    
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var oldPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+
+    if (showEditProfileScreen) {
+        EditProfileScreen(
+            user = user,
+            onDismiss = { showEditProfileScreen = false },
+            onSave = { fullName, bio, gender, dob ->
+                viewModel.updateProfile(fullName = fullName, bio = bio, gender = gender, dob = dob)
+                showEditProfileScreen = false
+            }
+        )
+        return
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -49,15 +69,51 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
     ) {
         item { Spacer(modifier = Modifier.height(24.dp)) }
 
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    Localization.get("profile"),
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                IconButton(onClick = { showEditProfileScreen = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = null, tint = Color(0xFF59DBC7))
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         if (uiState.error != null) {
             item {
                 Card(
                     backgroundColor = Color(0xFFFFB4AB).copy(alpha = 0.1f),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp).clickable { viewModel.loadProfile() }
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp).clickable { viewModel.clearMessages() }
                 ) {
                     Text(
                         uiState.error!!,
                         color = Color(0xFFFFB4AB),
+                        modifier = Modifier.padding(16.dp),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+        
+        if (uiState.successMessage != null) {
+            item {
+                Card(
+                    backgroundColor = Color(0xFF59DBC7).copy(alpha = 0.1f),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp).clickable { viewModel.clearMessages() }
+                ) {
+                    Text(
+                        uiState.successMessage!!,
+                        color = Color(0xFF59DBC7),
                         modifier = Modifier.padding(16.dp),
                         fontSize = 14.sp
                     )
@@ -73,7 +129,6 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFF1E2023))
                     .border(1.dp, Color(0x4D3C4946), RoundedCornerShape(12.dp))
-                    .clickable { viewModel.loadProfile() }
                     .padding(24.dp)
             ) {
                 Column {
@@ -106,6 +161,10 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
+                            Text(user?.email ?: "", color = Color(0xFF869490), fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Timezone: ${user?.timezone ?: "UTC"}", color = Color(0xFF869490), fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(6.dp))
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
@@ -119,6 +178,16 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                     }
                     
                     Spacer(modifier = Modifier.height(24.dp))
+
+                    if (user?.bio != null && user.bio.isNotBlank()) {
+                        Text(
+                            user.bio,
+                            color = Color(0xFFBBCAC5),
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -158,6 +227,29 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                         )
                     }
                 }
+            }
+        }
+        
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+
+        item {
+            Text("PERSONAL DETAILS", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp, modifier = Modifier.padding(start = 4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1E2023))
+                    .border(1.dp, Color(0x333C4946), RoundedCornerShape(12.dp))
+            ) {
+                InfoDetailRow(title = "Full Name", value = user?.full_name ?: "N/A", icon = Icons.Default.Person)
+                Divider(color = Color(0x1A3C4946), thickness = 1.dp)
+                InfoDetailRow(title = "Email Address", value = user?.email ?: "N/A", icon = Icons.Default.Email)
+                Divider(color = Color(0x1A3C4946), thickness = 1.dp)
+                InfoDetailRow(title = "Gender", value = user?.gender ?: "N/A", icon = Icons.Default.Face)
+                Divider(color = Color(0x1A3C4946), thickness = 1.dp)
+                InfoDetailRow(title = "Date of Birth", value = user?.dob ?: "N/A", icon = Icons.Default.DateRange)
             }
         }
         
@@ -280,6 +372,28 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         item { Spacer(modifier = Modifier.height(24.dp)) }
         
         item {
+            Text("ACCOUNT & SECURITY", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp, modifier = Modifier.padding(start = 4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1E2023))
+                    .border(1.dp, Color(0x333C4946), RoundedCornerShape(12.dp))
+            ) {
+                SettingRow(
+                    title = "Change Password", 
+                    value = "", 
+                    icon = Icons.Default.Lock,
+                    onClick = { showPasswordDialog = true }
+                )
+            }
+        }
+        
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+        
+        item {
             Text(Localization.get("app_settings"), color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.4.sp, modifier = Modifier.padding(start = 4.dp))
             Spacer(modifier = Modifier.height(12.dp))
             
@@ -357,6 +471,56 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         }
         
         item { Spacer(modifier = Modifier.height(100.dp)) }
+    }
+    
+    if (showPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasswordDialog = false },
+            backgroundColor = Color(0xFF1E2023),
+            title = { Text("Change Password", color = Color.White) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = oldPassword,
+                        onValueChange = { oldPassword = it },
+                        label = { Text("Current Password", color = Color.Gray) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            textColor = Color.White,
+                            focusedBorderColor = Color(0xFF59DBC7),
+                            unfocusedBorderColor = Color.Gray
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("New Password", color = Color.Gray) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            textColor = Color.White,
+                            focusedBorderColor = Color(0xFF59DBC7),
+                            unfocusedBorderColor = Color.Gray
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.changePassword(oldPassword, newPassword)
+                    showPasswordDialog = false
+                    oldPassword = ""
+                    newPassword = ""
+                }) {
+                    Text("Change", color = Color(0xFF59DBC7))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPasswordDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
     }
 }
 
@@ -445,6 +609,184 @@ fun SettingToggleRow(title: String, checked: Boolean, icon: ImageVector, onCheck
                     .clip(CircleShape)
                     .background(Color(0xFF003731))
             )
+        }
+    }
+}
+
+@Composable
+fun InfoDetailRow(title: String, value: String, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 18.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = Color(0xFF59DBC7), modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(title, color = Color(0xFFBBCAC5), fontSize = 14.sp)
+        }
+        Text(value, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun EditProfileScreen(
+    user: UserDto?,
+    onDismiss: () -> Unit,
+    onSave: (fullName: String, bio: String, gender: String, dob: String) -> Unit
+) {
+    var nameInput by remember { mutableStateOf(user?.full_name ?: "") }
+    var bioInput by remember { mutableStateOf(user?.bio ?: "") }
+    var genderInput by remember { mutableStateOf(user?.gender ?: "Male") }
+    var dobInput by remember { mutableStateOf(user?.dob ?: "") }
+
+    var nameError by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Edit Profile", color = Color.White, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                backgroundColor = Color(0xFF111316),
+                elevation = 0.dp
+            )
+        },
+        backgroundColor = Color(0xFF111316)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1E2023))
+                        .border(2.dp, Color(0xFF59DBC7), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(56.dp))
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            OutlinedTextField(
+                value = nameInput,
+                onValueChange = { 
+                    nameInput = it 
+                    nameError = it.isBlank()
+                },
+                label = { Text("Full Name", color = Color.Gray) },
+                isError = nameError,
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    textColor = Color.White,
+                    focusedBorderColor = Color(0xFF59DBC7),
+                    unfocusedBorderColor = Color(0xFF282A2D),
+                    errorBorderColor = Color.Red
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (nameError) {
+                Text("Name cannot be empty", color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            OutlinedTextField(
+                value = bioInput,
+                onValueChange = { bioInput = it },
+                label = { Text("Bio", color = Color.Gray) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    textColor = Color.White,
+                    focusedBorderColor = Color(0xFF59DBC7),
+                    unfocusedBorderColor = Color(0xFF282A2D)
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            Text("Gender", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF1E2023))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("Male", "Female", "Other").forEach { gender ->
+                    val isSelected = genderInput.equals(gender, ignoreCase = true)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSelected) Color(0xFF59DBC7) else Color.Transparent)
+                            .clickable { genderInput = gender }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            gender,
+                            color = if (isSelected) Color(0xFF003731) else Color.Gray,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            OutlinedTextField(
+                value = dobInput,
+                onValueChange = { dobInput = it },
+                label = { Text("Date of Birth (DD/MM/YYYY)", color = Color.Gray) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    textColor = Color.White,
+                    focusedBorderColor = Color(0xFF59DBC7),
+                    unfocusedBorderColor = Color(0xFF282A2D)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(40.dp))
+            
+            Button(
+                onClick = {
+                    if (nameInput.isNotBlank()) {
+                        onSave(nameInput, bioInput, genderInput, dobInput)
+                    } else {
+                        nameError = true
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF59DBC7)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Save Changes", color = Color(0xFF003731), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }

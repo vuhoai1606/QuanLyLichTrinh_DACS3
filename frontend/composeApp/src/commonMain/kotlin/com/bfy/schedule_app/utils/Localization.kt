@@ -161,7 +161,11 @@ object Localization {
             "no_schedule_today" to "No schedules for today",
             "search" to "Search",
             "mark_done" to "Mark as Done",
-            "edit" to "Edit"
+            "edit" to "Edit",
+            "bio" to "Bio",
+            "edit_profile" to "Edit Profile",
+            "email" to "Email",
+            "set_time" to "Set Time"
         ),
         Language.VIETNAMESE to mapOf(
             "app_settings" to "CÀI ĐẶT ỨNG DỤNG",
@@ -311,7 +315,11 @@ object Localization {
             "no_schedule_today" to "Hôm nay chưa có lịch trình",
             "search" to "Tìm kiếm",
             "mark_done" to "Đánh dấu xong",
-            "edit" to "Sửa"
+            "edit" to "Sửa",
+            "bio" to "Tiểu sử",
+            "edit_profile" to "Chỉnh sửa hồ sơ",
+            "email" to "Email",
+            "set_time" to "Chọn giờ"
         )
     )
 
