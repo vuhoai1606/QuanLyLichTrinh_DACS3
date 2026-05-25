@@ -13,12 +13,19 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import com.bfy.schedule_app.data.remote.model.ApiResponse
+import com.bfy.schedule_app.utils.SettingsManager
 import com.bfy.schedule_app.data.remote.model.AuthResponseData
 import io.ktor.client.call.body
 
 object ApiClient {
-    private const val BASE_URL = "http://10.0.2.2:3000/api"
-    private const val WS_URL = "ws://10.0.2.2:3000/ws"
+    private val BASE_URL: String get() {
+        val ip = SettingsManager.customServerIp.ifBlank { "10.0.2.2" }
+        return "http://$ip:3000/api"
+    }
+    private val WS_URL: String get() {
+        val ip = SettingsManager.customServerIp.ifBlank { "10.0.2.2" }
+        return "ws://$ip:3000/ws"
+    }
     
     var authToken: String? = null
     var refreshToken: String? = null

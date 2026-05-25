@@ -64,6 +64,9 @@ export const rateLimiter = new RateLimiter();
  */
 export const rateLimit = (windowMs: number, maxRequests: number, message?: string) => {
   return (ctx: Context) => {
+    if (process.env.NODE_ENV === "test") {
+      return;
+    }
     // Use IP address as identifier
     const identifier = ctx.request.headers.get("x-forwarded-for") ||
                      ctx.request.headers.get("x-real-ip") ||

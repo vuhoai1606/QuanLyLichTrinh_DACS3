@@ -33,7 +33,7 @@ export async function connectDB() {
       password: config.database.password,
       database: config.database.name,
       ssl: config.database.ssl ? { rejectUnauthorized: false } : false,
-      synchronize: config.nodeEnv === "development",
+      synchronize: config.nodeEnv === "development" || config.nodeEnv === "test",
       logging: config.nodeEnv === "development",
       entities: [
         UserSchema,

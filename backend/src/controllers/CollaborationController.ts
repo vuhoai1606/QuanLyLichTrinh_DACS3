@@ -215,7 +215,7 @@ export class CollaborationController {
   async getSharedWithMe(userId: string) {
     try {
       const result = await collaborationService.getSharedWithMe(userId);
-      return successResponse(result, "Shared schedules retrieved");
+      return successResponse(result.schedules, "Shared schedules retrieved");
     } catch (error) {
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);

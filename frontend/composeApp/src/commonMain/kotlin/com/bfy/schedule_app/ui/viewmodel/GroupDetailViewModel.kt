@@ -3,6 +3,7 @@ package com.bfy.schedule_app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bfy.schedule_app.data.remote.model.GroupTaskDto
+import com.bfy.schedule_app.data.remote.model.ReminderDto
 import com.bfy.schedule_app.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,7 +54,23 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
         }
     }
 
-    fun createSchedule(groupId: String, type: String, title: String, description: String?, assignees: List<String>) {
+    fun createSchedule(
+        groupId: String,
+        type: String,
+        title: String,
+        description: String?,
+        assignees: List<String>,
+        priority: String = "MEDIUM",
+        startTime: String? = null,
+        endTime: String? = null,
+        deadline: String? = null,
+        isAllDay: Boolean = false,
+        recurrenceType: String? = null,
+        reminders: List<String> = emptyList(),
+        categoryName: String? = null,
+        isAlarm: Boolean = false,
+        isCountdown: Boolean = false
+    ) {
         viewModelScope.launch {
             try {
                 repository.createSchedule(
@@ -64,9 +81,20 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
                         description = description,
                         type = type,
                         status = "PENDING",
-                        priority = "MEDIUM",
+                        priority = priority,
                         group_id = groupId,
-                        assignees = assignees
+                        assignees = assignees,
+                        start_time = startTime,
+                        end_time = endTime,
+                        deadline = deadline,
+                        is_all_day = isAllDay,
+                        is_recurring = recurrenceType != null && recurrenceType != "Never",
+                        recurrence_type = recurrenceType,
+                        reminders = reminders.map {
+                            ReminderDto(trigger_type = it, is_alarm = isAlarm)
+                        },
+                        category_name = categoryName,
+                        is_countdown_enabled = isCountdown
                     )
                 )
                 loadTasks(groupId)

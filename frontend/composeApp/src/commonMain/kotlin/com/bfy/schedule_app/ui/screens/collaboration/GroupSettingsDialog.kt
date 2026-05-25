@@ -37,10 +37,11 @@ fun GroupSettingsDialog(
     val myRole = members.find { it.id == currentUser?.id }?.role
 
     var name by remember { mutableStateOf(group?.name ?: "") }
+    var avatarUrl by remember { mutableStateOf(group?.avatar_url ?: "") }
     var searchQuery by remember { mutableStateOf("") }
 
     val localMembers = remember(members) { mutableStateListOf(*members.toTypedArray()) }
-    val isDirty = name != group?.name || localMembers.toList() != members
+    val isDirty = name != group?.name || avatarUrl != (group?.avatar_url ?: "") || localMembers.toList() != members
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -69,6 +70,24 @@ fun GroupSettingsDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (myRole == "LEADER" || myRole == "DEPUTY") {
+                    Text("Ảnh đại diện nhóm", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = avatarUrl,
+                        onValueChange = { avatarUrl = it },
+                        label = { Text("URL ảnh nhóm") },
+                        placeholder = { Text("https://example.com/avatar.jpg", color = Color(0xFF869490)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            textColor = TextPrimary,
+                            unfocusedBorderColor = Color(0xFF333538),
+                            focusedBorderColor = PrimaryColor
+                        ),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
@@ -271,7 +290,7 @@ fun GroupSettingsDialog(
                             viewModel.saveGroupChanges(
                                 groupId = groupId,
                                 name = name,
-                                avatarUrl = group?.avatar_url,
+                                avatarUrl = avatarUrl.ifBlank { null },
                                 membersToAdd = membersToAdd,
                                 membersToRemove = membersToRemove,
                                 membersToUpdateRole = membersToUpdateRole

@@ -26,7 +26,10 @@ import androidx.compose.runtime.getValue
 import kotlinx.datetime.*
 
 @Composable
-fun CalendarWeekViewScreen(viewModel: CalendarViewModel = viewModel { CalendarViewModel() }) {
+fun CalendarWeekViewScreen(
+    viewModel: CalendarViewModel = viewModel { CalendarViewModel() },
+    onItemClick: (com.bfy.schedule_app.data.remote.model.ScheduleDto) -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     
     Column(
@@ -36,7 +39,7 @@ fun CalendarWeekViewScreen(viewModel: CalendarViewModel = viewModel { CalendarVi
     ) {
         WeekDaysBar(viewModel)
         Spacer(modifier = Modifier.height(16.dp))
-        WeekTimeGrid(uiState)
+        WeekTimeGrid(uiState, onItemClick)
     }
 }
 
@@ -92,7 +95,10 @@ fun WeekDaysBar(viewModel: CalendarViewModel) {
 }
 
 @Composable
-fun WeekTimeGrid(uiState: CalendarUiState) {
+fun WeekTimeGrid(
+    uiState: CalendarUiState,
+    onItemClick: (com.bfy.schedule_app.data.remote.model.ScheduleDto) -> Unit
+) {
     val selectedDate = uiState.selectedDate
     val dayOfWeek = selectedDate.dayOfWeek.isoDayNumber
     val monday = selectedDate.minus(dayOfWeek - 1, DateTimeUnit.DAY)
@@ -100,7 +106,7 @@ fun WeekTimeGrid(uiState: CalendarUiState) {
 
     Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Column {
-            for (hour in 9..17) {
+            for (hour in 0..23) {
                 Row(modifier = Modifier.fillMaxWidth().height(60.dp)) {
                     Box(modifier = Modifier.width(60.dp).padding(end = 8.dp), contentAlignment = Alignment.TopEnd) {
                         Text("$hour:00", color = TextSecondary, fontSize = 12.sp)
@@ -121,7 +127,7 @@ fun WeekTimeGrid(uiState: CalendarUiState) {
                 } catch (e: Exception) {
                     // Ignore parsing error
                 }
-
+ 
                 if (localDateTime != null) {
                     val eventDate = localDateTime.date
                     val localHour = localDateTime.hour
@@ -130,8 +136,8 @@ fun WeekTimeGrid(uiState: CalendarUiState) {
                         val daysBetween = eventDate.toEpochDays() - monday.toEpochDays()
                         
                         if (daysBetween in 0..6) {
-                            if (localHour in 9..17) {
-                                val topOffset = (localHour - 9) * 60
+                            if (localHour in 0..23) {
+                                val topOffset = localHour * 60
                                 
                                 Box(
                                     modifier = Modifier
@@ -145,6 +151,7 @@ fun WeekTimeGrid(uiState: CalendarUiState) {
                                         .clip(RoundedCornerShape(4.dp))
                                         .background(if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF))
                                         .border(1.dp, if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF), RoundedCornerShape(4.dp))
+                                        .clickable { onItemClick(schedule) }
                                         .padding(4.dp)
                                 ) {
                                     Text(schedule.title, color = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFAD7BFF), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)

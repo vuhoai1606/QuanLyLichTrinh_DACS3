@@ -11,4 +11,5 @@ object SettingsManager {
     var rememberMeEnabled by mutableStateOf(false)
     var rememberedEmail by mutableStateOf("")
     var rememberedPassword by mutableStateOf("")
+    var customServerIp by mutableStateOf("")
 }

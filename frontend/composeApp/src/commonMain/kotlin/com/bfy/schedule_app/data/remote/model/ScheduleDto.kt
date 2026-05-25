@@ -47,6 +47,7 @@ data class UpdateScheduleRequest(
     val is_recurring: Boolean? = null,
     val recurrence_type: String? = null,
     val category_name: String? = null,
+    val category_color: String? = null,
     val is_countdown_enabled: Boolean? = null,
     val reminders: List<ReminderDto>? = null
 )

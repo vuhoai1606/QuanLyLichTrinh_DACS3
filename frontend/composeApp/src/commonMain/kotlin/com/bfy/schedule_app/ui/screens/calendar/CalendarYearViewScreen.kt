@@ -20,53 +20,87 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 
 
+import androidx.compose.foundation.clickable
+import kotlinx.datetime.*
+
 @Composable
-fun CalendarYearViewScreen(viewModel: CalendarViewModel = viewModel { CalendarViewModel() }) {
+fun CalendarYearViewScreen(
+    viewModel: CalendarViewModel = viewModel { CalendarViewModel() },
+    onNavigateToMonth: (LocalDate) -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedDate = uiState.selectedDate
 
     LazyColumn(
-
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         val months = listOf(
             "January", "February", "March", "April",
             "May", "June", "July", "August",
             "September", "October", "November", "December"
         )
-        val chunkedMonths = months.chunked(3)
+        val chunkedMonths = months.chunked(2)
         chunkedMonths.forEach { rowMonths ->
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     rowMonths.forEach { month ->
                         SmallMonthGrid(
                             monthName = month, 
                             selectedDate = selectedDate,
+                            schedules = uiState.schedules,
+                            onDayClick = onNavigateToMonth,
                             modifier = Modifier.weight(1f)
                         )
                     }
 
-                    repeat(3 - rowMonths.size) {
+                    repeat(2 - rowMonths.size) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
-        item { Spacer(modifier = Modifier.height(100.dp)) }
     }
 }
 
 @Composable
-fun SmallMonthGrid(monthName: String, selectedDate: kotlinx.datetime.LocalDate, modifier: Modifier = Modifier) {
+fun SmallMonthGrid(
+    monthName: String, 
+    selectedDate: LocalDate, 
+    schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>,
+    onDayClick: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val months = listOf(
+        "January", "February", "March", "April",
+        "May", "June", "July", "August",
+        "September", "October", "November", "December"
+    )
+    val monthNumber = months.indexOf(monthName) + 1
+    
+    val year = selectedDate.year
+    val daysInMonth = when (monthNumber) {
+        2 -> if (year % 4 == 0) 29 else 28
+        4, 6, 9, 11 -> 30
+        else -> 31
+    }
+    
+    val firstDayOfMonth = try {
+        LocalDate(year, monthNumber, 1)
+    } catch (e: Exception) {
+        LocalDate(year, 1, 1)
+    }
+    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.isoDayNumber // 1 (Mon) to 7 (Sun)
+    val offset = firstDayOfWeek - 1
 
-    Column(modifier = modifier.padding(end = 16.dp)) {
+    Column(modifier = modifier) {
         Text(
             text = monthName,
             color = PrimaryColor,
@@ -74,27 +108,61 @@ fun SmallMonthGrid(monthName: String, selectedDate: kotlinx.datetime.LocalDate, 
             fontWeight = FontWeight.SemiBold
         )
         Spacer(modifier = Modifier.height(8.dp))
-        for (i in 0 until 5) {
+        for (i in 0 until 6) { // 6 rows max to avoid cutoff
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 for (j in 0 until 7) {
-                    val dayNum = i * 7 + j + 1
-                    val isHighlighted = monthName.equals(selectedDate.month.name, ignoreCase = true) && dayNum == selectedDate.dayOfMonth
+                    val dayNum = i * 7 + j - offset + 1
+                    if (dayNum in 1..daysInMonth) {
+                        val gridDate = LocalDate(year, monthNumber, dayNum)
+                        val isHighlighted = gridDate == selectedDate
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .padding(1.dp)
-                            .clip(CircleShape)
-                            .background(if (isHighlighted) PrimaryColor else Color.Transparent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (i * 7 + j < 31) "${(i * 7 + j + 1)}" else "",
-                            color = if (isHighlighted) TextDark else TextSecondary,
-                            fontSize = 8.sp,
-                            fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal
-                        )
+                        // Check if day has schedules
+                        val hasSchedules = schedules.any { schedule ->
+                            val itemDate = try {
+                                val startStr = schedule.start_time ?: schedule.deadline
+                                if (startStr != null) {
+                                    Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                } else {
+                                    null
+                                }
+                            } catch (e: Exception) {
+                                null
+                            }
+                            itemDate == gridDate
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .padding(1.dp)
+                                .clip(CircleShape)
+                                .background(if (isHighlighted) PrimaryColor else Color.Transparent)
+                                .clickable { onDayClick(gridDate) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = dayNum.toString(),
+                                    color = if (isHighlighted) TextDark else TextSecondary,
+                                    fontSize = 9.sp,
+                                    fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal
+                                )
+                                if (hasSchedules) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(3.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isHighlighted) TextDark else Color(0xFFAD7BFF))
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                     }
                 }
             }

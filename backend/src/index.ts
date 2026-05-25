@@ -41,6 +41,7 @@ const app = new Elysia()
   .use(rateLimit({
     max: 100,
     duration: 60000, // 1 minute
+    skip: () => process.env.NODE_ENV === "test",
     errorResponse: {
       status: 429,
       success: false,
@@ -48,10 +49,9 @@ const app = new Elysia()
       code: "RATE_LIMIT_EXCEEDED"
     }
   }))
-  .onBeforeHandle((ctx) => {
-    corsMiddleware(ctx);
-  })
   .onBeforeHandle((ctx: any) => {
+    corsMiddleware(ctx);
+    securityHeaders()(ctx);
     const requestContext = requestIdMiddleware(ctx); // Add request ID tracking
     ctx.state = ctx.state || {};
     ctx.state.requestId = requestContext.requestId;
@@ -61,10 +61,6 @@ const app = new Elysia()
     if (ctx.state?.requestId) {
       requestSummaryMiddleware(ctx, ctx.state.requestId);
     }
-  })
-  .onAfterResponse((ctx) => {
-    // Apply security headers after response is prepared
-    securityHeaders()(ctx);
   })
   .get("/", () => ({
     name: "BFY Backend API",
@@ -221,6 +217,8 @@ process.on("unhandledRejection", (reason, promise) => {
   logger.error("Unhandled Rejection at:", reason instanceof Error ? reason : new Error(String(reason)));
 });
 
-start();
+if (process.env.NODE_ENV !== "test") {
+  start();
+}
 
 export default app;

@@ -26,6 +26,30 @@ export class ScheduleService {
     return categoryRepository.save(category);
   }
 
+  async getCategoriesForUser(userId: string): Promise<any[]> {
+    const categoryRepository = AppDataSource.getRepository("Category");
+    return categoryRepository.find({ where: { user_id: userId } });
+  }
+
+  async getOrCreateCategory(userId: string, name: string, hexColor?: string): Promise<any> {
+    const categoryRepository = AppDataSource.getRepository("Category");
+    let category = await categoryRepository.findOne({ where: { user_id: userId, name } });
+    if (!category) {
+      let finalColor = hexColor || "#AD7BFF";
+      if (!isValidHexColor(finalColor)) {
+        finalColor = "#AD7BFF";
+      }
+      category = categoryRepository.create({
+        id: generateUUID(),
+        user_id: userId,
+        name,
+        hex_color: finalColor,
+      });
+      await categoryRepository.save(category);
+    }
+    return category;
+  }
+
   async createSchedule(data: any): Promise<any> {
     const scheduleRepository = AppDataSource.getRepository("Schedule");
     const reminderRepository = AppDataSource.getRepository("Reminder");
@@ -34,9 +58,7 @@ export class ScheduleService {
       throw new AppError(400, "Title is required", "MISSING_TITLE");
     }
 
-    if (data.type === "TASK" && !data.deadline) {
-      throw new AppError(400, "Deadline is required for TASK", "MISSING_DEADLINE");
-    }
+
 
     if (data.type === "EVENT") {
       const startTime = data.start_time || data.start_date;
@@ -53,10 +75,17 @@ export class ScheduleService {
     const { reminders, collaborators, assignees, id, ...scheduleData } = data;
     const finalId = (id && id !== "") ? id : generateUUID();
 
+    let resolvedCategoryId = data.category_id || null;
+    if (data.category_name) {
+      const category = await this.getOrCreateCategory(data.creator_id, data.category_name, data.category_color);
+      resolvedCategoryId = category.id;
+    }
+
     const schedule = scheduleRepository.create({
       ...scheduleData,
       id: finalId,
       creator_id: data.creator_id,
+      category_id: resolvedCategoryId,
       start_time: data.start_time || data.start_date,
       end_time: data.end_time || data.end_date,
       status: "PENDING",
@@ -230,7 +259,15 @@ export class ScheduleService {
     const { reminders, ...otherUpdates } = updates;
     const oldStatus = schedule.status;
     
-    Object.assign(schedule, otherUpdates);
+    let resolvedCategoryId = otherUpdates.category_id !== undefined ? otherUpdates.category_id : schedule.category_id;
+    if (otherUpdates.category_name) {
+      const category = await this.getOrCreateCategory(userId, otherUpdates.category_name, otherUpdates.category_color);
+      resolvedCategoryId = category.id;
+    } else if (otherUpdates.category_name === null) {
+      resolvedCategoryId = null;
+    }
+
+    Object.assign(schedule, { ...otherUpdates, category_id: resolvedCategoryId });
 
     if (otherUpdates.status === "DONE" && oldStatus !== "DONE") {
       schedule.completed_at = new Date();

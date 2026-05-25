@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -175,6 +176,20 @@ fun CreateNewItemScreen(
     var endHour by remember { mutableStateOf(10) }
     var endMinute by remember { mutableStateOf(0) }
 
+    // Date state variables
+    var startDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
+    var endDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    // For Task deadline
+    var hasDeadline by remember { mutableStateOf(false) }
+    var deadlineDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
+    var deadlineHour by remember { mutableStateOf(23) }
+    var deadlineMinute by remember { mutableStateOf(59) }
+    var showDeadlineDatePicker by remember { mutableStateOf(false) }
+    var showDeadlineTimePicker by remember { mutableStateOf(false) }
+
+
     // Pre-fill logic
     LaunchedEffect(initialSchedule, categories) {
         if (initialSchedule != null) {
@@ -189,6 +204,7 @@ fun CreateNewItemScreen(
                     val dt = Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault())
                     startHour = dt.hour
                     startMinute = dt.minute
+                    startDate = dt.date
                 } catch(e: Exception) {}
             }
             initialSchedule.end_time?.let {
@@ -196,6 +212,16 @@ fun CreateNewItemScreen(
                     val dt = Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault())
                     endHour = dt.hour
                     endMinute = dt.minute
+                    endDate = dt.date
+                } catch(e: Exception) {}
+            }
+            initialSchedule.deadline?.let {
+                try {
+                    val dt = Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault())
+                    deadlineHour = dt.hour
+                    deadlineMinute = dt.minute
+                    deadlineDate = dt.date
+                    hasDeadline = true
                 } catch(e: Exception) {}
             }
             
@@ -223,6 +249,19 @@ fun CreateNewItemScreen(
 
     fun formatTime(hour: Int, minute: Int): String {
         return "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+    }
+
+    fun formatDate(date: LocalDate): String {
+        val dayOfWeek = when(date.dayOfWeek) {
+            DayOfWeek.MONDAY -> "T2"
+            DayOfWeek.TUESDAY -> "T3"
+            DayOfWeek.WEDNESDAY -> "T4"
+            DayOfWeek.THURSDAY -> "T5"
+            DayOfWeek.FRIDAY -> "T6"
+            DayOfWeek.SATURDAY -> "T7"
+            DayOfWeek.SUNDAY -> "CN"
+        }
+        return "$dayOfWeek, ${date.dayOfMonth} Thg ${date.monthNumber}, ${date.year}"
     }
 
     fun isDirty(): Boolean {
@@ -440,14 +479,11 @@ fun CreateNewItemScreen(
                     }
                 }
 
-                FormSwitchRow(
-                    label = Localization.get("set_reminder"),
-                    subtitle = Localization.get("toggle_time_rem"),
-                    checked = setReminder,
-                    onCheckedChange = { setReminder = it }
-                )
+                // Always show time settings (no Set Reminder toggle)
+                setReminder = true
 
-                if (setReminder) {
+                // Show time/reminder section if event or task with reminder
+                if (selectedSegment == 1 || setReminder) {
                     FormSwitchRow(
                         label = Localization.get("all_day"),
                         subtitle = Localization.get("full_day_task_event"),
@@ -455,31 +491,182 @@ fun CreateNewItemScreen(
                         onCheckedChange = { isAllDay = it }
                     )
 
-                    Box {
-                        FormSelectorRow(
-                            label = Localization.get("start_time"),
-                            value = formatTime(startHour, startMinute),
-                            onClick = { showStartTimePicker = true },
-                            enabled = !isAllDay
+                    // Start Date + Time row
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = Localization.get("start_time"),
+                            color = Color(0xFFBBCAC5),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    }
-                    
-                    Box {
-                        FormSelectorRow(
-                            label = Localization.get("end_time"),
-                            value = formatTime(endHour, endMinute),
-                            onClick = { showEndTimePicker = true },
-                            enabled = !isAllDay
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Date box
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF1E2023))
+                                    .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
+                                    .clickable { showStartDatePicker = true }
+                                    .padding(horizontal = 12.dp, vertical = 13.dp)
+                            ) {
+                                Text(
+                                    text = formatDate(startDate),
+                                    color = Color(0xFFE2E2E6),
+                                    fontSize = 14.sp
+                                )
+                            }
+                            // Time box (hidden if allDay)
+                            if (!isAllDay) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF1E2023))
+                                        .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
+                                        .clickable { showStartTimePicker = true }
+                                        .padding(horizontal = 12.dp, vertical = 13.dp)
+                                ) {
+                                    Text(
+                                        text = formatTime(startHour, startMinute),
+                                        color = Color(0xFFE2E2E6),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
                     }
 
+                    // End Date + Time row (ONLY for Event)
+                    if (selectedSegment == 1) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = Localization.get("end_time"),
+                                color = Color(0xFFBBCAC5),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Date box
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF1E2023))
+                                        .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
+                                        .clickable { showEndDatePicker = true }
+                                        .padding(horizontal = 12.dp, vertical = 13.dp)
+                                ) {
+                                    Text(
+                                        text = formatDate(endDate),
+                                        color = Color(0xFFE2E2E6),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                // Time box (hidden if allDay)
+                                if (!isAllDay) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF1E2023))
+                                            .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
+                                            .clickable { showEndTimePicker = true }
+                                            .padding(horizontal = 12.dp, vertical = 13.dp)
+                                    ) {
+                                        Text(
+                                            text = formatTime(endHour, endMinute),
+                                            color = Color(0xFFE2E2E6),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Deadline (ONLY for Task)
+                    if (selectedSegment == 0) {
+                        if (!hasDeadline) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { hasDeadline = true }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF59DBC7), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Add deadline", color = Color(0xFF59DBC7), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        } else {
+                            // Show Deadline Date + Time with a remove button
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Deadline", color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Remove deadline",
+                                        tint = Color(0xFFFF7B7B),
+                                        modifier = Modifier.size(18.dp).clickable { hasDeadline = false }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Date box for deadline
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF1E2023))
+                                            .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
+                                            .clickable { showDeadlineDatePicker = true }
+                                            .padding(horizontal = 12.dp, vertical = 13.dp)
+                                    ) {
+                                        Text(
+                                            text = formatDate(deadlineDate),
+                                            color = Color(0xFFE2E2E6),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                    // Time box for deadline
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF1E2023))
+                                            .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
+                                            .clickable { showDeadlineTimePicker = true }
+                                            .padding(horizontal = 12.dp, vertical = 13.dp)
+                                    ) {
+                                        Text(
+                                            text = formatTime(deadlineHour, deadlineMinute),
+                                            color = Color(0xFFE2E2E6),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Reminder options
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF1A1C1F))
                             .border(1.dp, Color(0xFF1E2023), RoundedCornerShape(12.dp))
-                            .alpha(if (!isAllDay) 1f else 0.5f)
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -502,7 +689,7 @@ fun CreateNewItemScreen(
                                                 if (selected) Color.Transparent else Color(0xFF3C4946),
                                                 RoundedCornerShape(20.dp)
                                             )
-                                            .clickable(enabled = !isAllDay) {
+                                            .clickable {
                                                 if (selected) selectedReminderKeys.remove(option.key)
                                                 else selectedReminderKeys.add(option.key)
                                             }
@@ -554,8 +741,7 @@ fun CreateNewItemScreen(
                         label = Localization.get("countdown_reminder"),
                         subtitle = Localization.get("enable_foreground_countdown"),
                         checked = countdownEnabled,
-                        onCheckedChange = { countdownEnabled = it },
-                        enabled = !isAllDay
+                        onCheckedChange = { countdownEnabled = it }
                     )
 
                     eventTimeError?.let {
@@ -615,24 +801,30 @@ fun CreateNewItemScreen(
                                     return "${date}T${time}:00.000Z"
                                 }
 
-                                val startTimeStr = if (setReminder) {
+                                val startTimeStr = if (selectedSegment == 1 || setReminder) {
                                     if (isAllDay) {
-                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, 0, 0)
+                                        val dt = LocalDateTime(startDate.year, startDate.monthNumber, startDate.dayOfMonth, 0, 0)
                                         dt.toInstant(TimeZone.currentSystemDefault()).toString()
                                     } else {
-                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, startHour, startMinute)
+                                        val dt = LocalDateTime(startDate.year, startDate.monthNumber, startDate.dayOfMonth, startHour, startMinute)
                                         dt.toInstant(TimeZone.currentSystemDefault()).toString()
                                     }
                                 } else null
 
-                                val endTimeStr = if (setReminder) {
+                                val endTimeStr = if (selectedSegment == 1) {
+                                    // Only events have end time
                                     if (isAllDay) {
-                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, 23, 59)
+                                        val dt = LocalDateTime(endDate.year, endDate.monthNumber, endDate.dayOfMonth, 23, 59)
                                         dt.toInstant(TimeZone.currentSystemDefault()).toString()
                                     } else {
-                                        val dt = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, endHour, endMinute)
+                                        val dt = LocalDateTime(endDate.year, endDate.monthNumber, endDate.dayOfMonth, endHour, endMinute)
                                         dt.toInstant(TimeZone.currentSystemDefault()).toString()
                                     }
+                                } else null
+
+                                val deadlineStr = if (selectedSegment == 0 && hasDeadline) {
+                                    val dt = LocalDateTime(deadlineDate.year, deadlineDate.monthNumber, deadlineDate.dayOfMonth, deadlineHour, deadlineMinute)
+                                    dt.toInstant(TimeZone.currentSystemDefault()).toString()
                                 } else null
 
                                 val recurrenceStr = when(repeatIndex) {
@@ -641,6 +833,8 @@ fun CreateNewItemScreen(
                                     4 -> "Monthly"
                                     else -> "Never"
                                 }
+                                val catColor = categories[selectedCategoryIndex].color
+                                val hexColor = "#" + catColor.value.toString(16).substring(2, 8).uppercase()
 
                                 if (initialSchedule != null) {
                                     viewModel.updateItem(
@@ -650,11 +844,12 @@ fun CreateNewItemScreen(
                                         type = segments[selectedSegment].uppercase(),
                                         startTime = startTimeStr,
                                         endTime = endTimeStr,
-                                        deadline = endTimeStr,
+                                        deadline = deadlineStr,
                                         isAllDay = isAllDay,
                                         recurrence = recurrenceStr,
                                         reminders = selectedReminderKeys.toList(),
                                         categoryName = categories[selectedCategoryIndex].name,
+                                        categoryColor = hexColor,
                                         isAlarm = alarmEnabled,
                                         isCountdown = countdownEnabled
                                     )
@@ -665,11 +860,12 @@ fun CreateNewItemScreen(
                                         type = segments[selectedSegment].uppercase(),
                                         startTime = startTimeStr,
                                         endTime = endTimeStr,
-                                        deadline = endTimeStr,
+                                        deadline = deadlineStr,
                                         isAllDay = isAllDay,
                                         recurrence = recurrenceStr,
                                         reminders = selectedReminderKeys.toList(),
                                         categoryName = categories[selectedCategoryIndex].name,
+                                        categoryColor = hexColor,
                                         isAlarm = alarmEnabled,
                                         isCountdown = countdownEnabled
                                     )
@@ -806,6 +1002,39 @@ fun CreateNewItemScreen(
             }
         )
     }
+
+    if (showStartDatePicker) {
+        BFYDatePickerDialog(
+            initialDate = startDate,
+            onDismiss = { showStartDatePicker = false },
+            onConfirm = { date -> startDate = date; showStartDatePicker = false }
+        )
+    }
+
+    if (showEndDatePicker) {
+        BFYDatePickerDialog(
+            initialDate = endDate,
+            onDismiss = { showEndDatePicker = false },
+            onConfirm = { date -> endDate = date; showEndDatePicker = false }
+        )
+    }
+
+    if (showDeadlineDatePicker) {
+        BFYDatePickerDialog(
+            initialDate = deadlineDate,
+            onDismiss = { showDeadlineDatePicker = false },
+            onConfirm = { date -> deadlineDate = date; showDeadlineDatePicker = false }
+        )
+    }
+
+    if (showDeadlineTimePicker) {
+        BFYTimePickerDialog(
+            initialHour = deadlineHour,
+            initialMinute = deadlineMinute,
+            onDismiss = { showDeadlineTimePicker = false },
+            onConfirm = { h, m -> deadlineHour = h; deadlineMinute = m; showDeadlineTimePicker = false }
+        )
+    }
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -836,7 +1065,7 @@ fun BFYTimePickerDialog(
         },
         title = { Text(Localization.get("set_time") ?: "Set Time", color = Color.White) },
         text = {
-            androidx.compose.material3.TimePicker(
+            androidx.compose.material3.TimeInput(
                 state = timePickerState,
                 colors = androidx.compose.material3.TimePickerDefaults.colors(
                     clockDialColor = Color(0xFF1E2023),
@@ -848,6 +1077,65 @@ fun BFYTimePickerDialog(
                     timeSelectorUnselectedContainerColor = Color(0xFF1E2023),
                     timeSelectorSelectedContentColor = Color(0xFF59DBC7),
                     timeSelectorUnselectedContentColor = Color.White
+                )
+            )
+        },
+        containerColor = Color(0xFF282A2D)
+    )
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun BFYDatePickerDialog(
+    initialDate: LocalDate,
+    onDismiss: () -> Unit,
+    onConfirm: (LocalDate) -> Unit
+) {
+    val datePickerState = androidx.compose.material3.rememberDatePickerState(
+        initialSelectedDateMillis = initialDate
+            .atStartOfDayIn(TimeZone.UTC)
+            .toEpochMilliseconds()
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                datePickerState.selectedDateMillis?.let { millis ->
+                    val selectedDate = Instant.fromEpochMilliseconds(millis)
+                        .toLocalDateTime(TimeZone.UTC)
+                        .date
+                    onConfirm(selectedDate)
+                }
+            }) {
+                Text("OK", color = Color(0xFF59DBC7))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(Localization.get("cancel") ?: "Cancel", color = Color.Gray)
+            }
+        },
+        title = { Text("Select Date", color = Color.White) },
+        text = {
+            androidx.compose.material3.DatePicker(
+                state = datePickerState,
+                colors = androidx.compose.material3.DatePickerDefaults.colors(
+                    containerColor = Color(0xFF282A2D),
+                    titleContentColor = Color.White,
+                    headlineContentColor = Color.White,
+                    weekdayContentColor = Color(0xFFBBCAC5),
+                    subheadContentColor = Color(0xFFBBCAC5),
+                    yearContentColor = Color.White,
+                    currentYearContentColor = Color(0xFF59DBC7),
+                    selectedYearContentColor = Color(0xFF003731),
+                    selectedYearContainerColor = Color(0xFF59DBC7),
+                    dayContentColor = Color.White,
+                    selectedDayContentColor = Color(0xFF003731),
+                    selectedDayContainerColor = Color(0xFF59DBC7),
+                    todayContentColor = Color(0xFF59DBC7),
+                    todayDateBorderColor = Color(0xFF59DBC7),
+                    navigationContentColor = Color.White
                 )
             )
         },

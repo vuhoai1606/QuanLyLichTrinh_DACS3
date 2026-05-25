@@ -3,6 +3,8 @@ import { AuthContext, authMiddleware } from "@middleware/auth";
 import settingsController from "@controllers/SettingsController";
 
 export const settingsRoutes = new Elysia({ prefix: "/settings" })
+  .patch("/", async (ctx: AuthContext) => { authMiddleware(ctx); const body = (ctx as any).body; return settingsController.updateUserSettings(ctx.user!.userId, body); }, { tags: ["Settings"] })
+  .put("/", async (ctx: AuthContext) => { authMiddleware(ctx); const body = (ctx as any).body; return settingsController.updateUserSettings(ctx.user!.userId, body); }, { tags: ["Settings"] })
   .get("/app", async () => settingsController.getAppSettings(), { tags: ["Settings"] })
   .get("/user", async (ctx: AuthContext) => { authMiddleware(ctx); return settingsController.getUserSettings(ctx.user!.userId); }, { tags: ["Settings"] })
   .put("/user", async (ctx: AuthContext) => { authMiddleware(ctx); const body = (ctx as any).body; return settingsController.updateUserSettings(ctx.user!.userId, body); }, { tags: ["Settings"] })

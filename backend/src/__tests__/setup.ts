@@ -3,12 +3,15 @@
  * Runs before all tests
  */
 
+import dotenv from "dotenv";
+dotenv.config();
+
 // Setup environment variables for testing
 process.env.NODE_ENV = "test";
-process.env.DATABASE_HOST = "localhost";
-process.env.DATABASE_PORT = "5432";
-process.env.DATABASE_USER = "test_user";
-process.env.DATABASE_PASSWORD = "test_password";
+process.env.DATABASE_HOST = process.env.DATABASE_HOST || "localhost";
+process.env.DATABASE_PORT = process.env.DATABASE_PORT || "5432";
+process.env.DATABASE_USER = process.env.DATABASE_USER || "postgres";
+process.env.DATABASE_PASSWORD = process.env.DATABASE_PASSWORD || "v01215335600";
 process.env.DATABASE_NAME = "bfy_test";
 process.env.JWT_SECRET = "test_secret_key_for_testing_only_123456";
 
@@ -50,5 +53,9 @@ afterAll(async () => {
   // Close database connections
   // Close any open servers
   // Clear timers
-  jest.clearAllTimers();
+  try {
+    jest.clearAllTimers();
+  } catch (e) {
+    // Ignore error if fake timers not active
+  }
 });

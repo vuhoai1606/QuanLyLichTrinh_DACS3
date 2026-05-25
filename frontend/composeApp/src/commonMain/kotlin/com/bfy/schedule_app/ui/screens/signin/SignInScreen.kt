@@ -3,7 +3,16 @@ package com.bfy.schedule_app.ui.screens.signin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +40,8 @@ fun SignInScreen(
     var email by remember { mutableStateOf(if (SettingsManager.rememberMeEnabled) SettingsManager.rememberedEmail else "") }
     var password by remember { mutableStateOf(if (SettingsManager.rememberMeEnabled) SettingsManager.rememberedPassword else "") }
     var rememberMe by remember { mutableStateOf(SettingsManager.rememberMeEnabled) }
+    var showServerDialog by remember { mutableStateOf(false) }
+    var serverIpInput by remember { mutableStateOf(SettingsManager.customServerIp) }
     
     val viewModel: AuthViewModel = viewModel { AuthViewModel() }
     val uiState by viewModel.uiState.collectAsState()
@@ -47,6 +58,24 @@ fun SignInScreen(
             .background(BackgroundColor),
         contentAlignment = Alignment.Center
     ) {
+        // Settings icon at top-right
+        IconButton(
+            onClick = {
+                serverIpInput = SettingsManager.customServerIp
+                showServerDialog = true
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Server Settings",
+                tint = Color(0xFF6E6E73),
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .widthIn(max = 400.dp)
@@ -154,4 +183,59 @@ fun SignInScreen(
             )
         }
     }
+
+    // Server IP configuration dialog
+    if (showServerDialog) {
+        AlertDialog(
+            onDismissRequest = { showServerDialog = false },
+            backgroundColor = Color(0xFF2C2C2E),
+            shape = RoundedCornerShape(16.dp),
+            title = {
+                Text(
+                    text = "Server Configuration",
+                    color = Color(0xFFE2E2E6),
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Enter server IP address (leave empty for default 10.0.2.2)",
+                        color = Color(0xFF8E8E93),
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = serverIpInput,
+                        onValueChange = { serverIpInput = it },
+                        placeholder = {
+                            Text("e.g. 192.168.1.100", color = Color(0xFF6E6E73))
+                        },
+                        singleLine = true,
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            textColor = Color(0xFFE2E2E6),
+                            cursorColor = Color(0xFF59DBC7),
+                            focusedBorderColor = Color(0xFF59DBC7),
+                            unfocusedBorderColor = Color(0xFF6E6E73)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    SettingsManager.customServerIp = serverIpInput.trim()
+                    showServerDialog = false
+                }) {
+                    Text("Save", color = Color(0xFF59DBC7))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showServerDialog = false }) {
+                    Text("Cancel", color = Color(0xFF8E8E93))
+                }
+            }
+        )
+    }
 }
+

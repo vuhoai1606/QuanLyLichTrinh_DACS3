@@ -165,7 +165,7 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
                     onLeaderboardClick = { selectedTab = DashboardTab.LEADERBOARD },
                     onItemClick = { schedule ->
                         selectedScheduleForAction = schedule
-                        showActionDialog = true
+                        showEditScreen = true
                     },
                     onStatusChange = { viewModel.loadDashboardData() },
                     onEditClick = { schedule ->
@@ -284,8 +284,21 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
             if (showDeleteConfirm && selectedScheduleForAction != null) {
                 androidx.compose.material3.AlertDialog(
                     onDismissRequest = { showDeleteConfirm = false },
-                    title = { Text(Localization.get("delete_item")) },
-                    text = { Text(Localization.get("delete_confirm_msg").format(selectedScheduleForAction?.title ?: "")) },
+                    title = { 
+                        Text(
+                            Localization.get("delete_item"), 
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        ) 
+                    },
+                    text = { 
+                        Text(
+                            Localization.get("delete_confirm_msg").format(selectedScheduleForAction?.title ?: ""), 
+                            color = Color(0xFFBBCAC5),
+                            fontSize = 14.sp
+                        ) 
+                    },
                     confirmButton = {
                         androidx.compose.material3.TextButton(onClick = {
                             scope.launch {
@@ -297,14 +310,16 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
                                 } catch (e: Exception) {}
                             }
                         }) {
-                            Text(Localization.get("delete"), color = Color.Red)
+                            Text(Localization.get("delete"), color = Color(0xFFFF7B7B), fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
                         androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) {
-                            Text(Localization.get("cancel"))
+                            Text(Localization.get("cancel"), color = Color(0xFF869490))
                         }
-                    }
+                    },
+                    containerColor = Color(0xFF1E2023),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
 
@@ -418,7 +433,86 @@ fun HomeContent(
             )
         }
         item { Spacer(modifier = Modifier.height(24.dp)) }
-        item { TimelineSection(uiState.schedules, onItemClick, onStatusChange, onEditClick, onDeleteClick) }
+        item {
+            val nowInstant = Clock.System.now()
+            val today = nowInstant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+            
+            val filteredSchedules = uiState.schedules.filter { schedule ->
+                val isDone = schedule.status == "DONE"
+                val isOverdue = !isDone && schedule.deadline?.let {
+                    try {
+                        Instant.parse(it) < nowInstant
+                    } catch (e: Exception) { false }
+                } ?: false
+
+                if (isOverdue) {
+                    true
+                } else {
+                    var isToday = false
+                    if (schedule.type == "EVENT") {
+                        try {
+                            val startLocal = schedule.start_time?.let { Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault()).date }
+                            val endLocal = schedule.end_time?.let { Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault()).date }
+                            if (startLocal != null && endLocal != null) {
+                                isToday = today in startLocal..endLocal
+                            } else if (startLocal != null) {
+                                isToday = startLocal == today
+                            }
+                        } catch (e: Exception) {}
+                    } else if (schedule.type == "TASK") {
+                        try {
+                            val startLocal = schedule.start_time?.let { Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault()).date }
+                            val deadlineLocal = schedule.deadline?.let { Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault()).date }
+                            isToday = (startLocal == today) || (deadlineLocal == today)
+                            if (schedule.start_time == null && schedule.deadline == null) {
+                                isToday = true
+                            }
+                        } catch (e: Exception) {
+                            isToday = true
+                        }
+                    } else {
+                        isToday = true
+                    }
+                    isToday
+                }
+            }.sortedWith(compareBy<ScheduleDto> { schedule ->
+                val isDone = schedule.status == "DONE"
+                val isOverdue = !isDone && schedule.deadline?.let {
+                    try {
+                        Instant.parse(it) < nowInstant
+                    } catch (e: Exception) { false }
+                } ?: false
+                !isOverdue
+            }.thenComparator { a, b ->
+                val aIsDone = a.status == "DONE"
+                val aIsOverdue = !aIsDone && a.deadline?.let {
+                    try {
+                        Instant.parse(it) < nowInstant
+                    } catch (e: Exception) { false }
+                } ?: false
+
+                val bIsDone = b.status == "DONE"
+                val bIsOverdue = !bIsDone && b.deadline?.let {
+                    try {
+                        Instant.parse(it) < nowInstant
+                    } catch (e: Exception) { false }
+                } ?: false
+
+                if (aIsOverdue && bIsOverdue) {
+                    val aDeadline = a.deadline ?: ""
+                    val bDeadline = b.deadline ?: ""
+                    aDeadline.compareTo(bDeadline)
+                } else if (!aIsOverdue && !bIsOverdue) {
+                    val aTime = a.start_time ?: a.deadline ?: ""
+                    val bTime = b.start_time ?: b.deadline ?: ""
+                    aTime.compareTo(bTime)
+                } else {
+                    0
+                }
+            })
+
+            TimelineSection(filteredSchedules, onItemClick, onStatusChange, onEditClick, onDeleteClick)
+        }
     }
 }
 
@@ -645,13 +739,12 @@ fun EXPProgressBar(exp: Int, nextLevelExp: Int) {
 
 @Composable
 fun SwipeToRevealContainer(
-    onEdit: () -> Unit,
     onDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
     var offsetX by remember { mutableStateOf(0f) }
-    val maxSwipe = -200f // 200px (around 100dp) is perfect to fit 2 icons side-by-side
-    val swipeLimit = -250f
+    val maxSwipe = -100f // 100px (around 50dp) is perfect to fit 1 icon
+    val swipeLimit = -150f
     
     Box(
         modifier = Modifier
@@ -664,22 +757,8 @@ fun SwipeToRevealContainer(
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight()
                 .padding(end = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = {
-                    offsetX = 0f
-                    onEdit()
-                },
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF282A2D))
-            ) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White, modifier = Modifier.size(20.dp))
-            }
-            
             IconButton(
                 onClick = {
                     offsetX = 0f
@@ -767,10 +846,9 @@ fun TimelineSection(
                     }
                 }
                 
-                // Content with Swipe to Reveal Edit/Delete Icons
+                // Content with Swipe to Reveal Delete Icon
                 Column(modifier = Modifier.weight(1f).padding(bottom = 24.dp)) {
                     SwipeToRevealContainer(
-                        onEdit = { onEditClick(schedule) },
                         onDelete = { onDeleteClick(schedule) }
                     ) {
                         TimelineCard(schedule, onClick = { onItemClick(schedule) }, onStatusChange = onStatusChange)

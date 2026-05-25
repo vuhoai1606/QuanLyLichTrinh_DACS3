@@ -5,9 +5,9 @@ require('dotenv').config();
 // Test database configuration from src/__tests__/setup.ts
 const dbConfig = {
   host: process.env.DATABASE_HOST || 'localhost',
-  port: process.env.DATABASE_PORT || 5432,
-  user: 'test_user',
-  password: 'test_password',
+  port: parseInt(process.env.DATABASE_PORT) || 5432,
+  user: process.env.DATABASE_USER || 'postgres',
+  password: process.env.DATABASE_PASSWORD || 'v01215335600',
   database: 'postgres', // Connect to default 'postgres' db to create the new one
 };
 
@@ -46,52 +46,15 @@ async function setupTestDatabase() {
     console.log(`Database "${testDbName}" created successfully.`);
 
     // 3. Grant privileges to the test user
-    console.log(`Granting privileges to user "test_user" on database "${testDbName}"...`);
-    await client.query(`GRANT ALL PRIVILEGES ON DATABASE "${testDbName}" TO test_user;`);
-    console.log('Privileges granted.');
+    console.log(`Granting privileges to user "${dbConfig.user}" on database "${testDbName}"...`);
+    try {
+      await client.query(`GRANT ALL PRIVILEGES ON DATABASE "${testDbName}" TO "${dbConfig.user}";`);
+      console.log('Privileges granted.');
+    } catch (e) {
+      console.log('Privileges grant skipped (user might be superuser already):', e.message);
+    }
 
-    // 4. Seed test user
     await client.end();
-    
-    const testDbClient = new Client({
-      ...dbConfig,
-      database: testDbName
-    });
-    
-    await testDbClient.connect();
-    console.log('Connected to test database to seed data...');
-    
-    // Create users table (minimal for seeding)
-    await testDbClient.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        full_name VARCHAR(100) NOT NULL,
-        avatar_url VARCHAR(255),
-        bio VARCHAR(280),
-        timezone VARCHAR(50) DEFAULT 'UTC',
-        total_exp INTEGER DEFAULT 0,
-        current_rank VARCHAR(50) DEFAULT 'Rookie',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    const hashedPass = await bcrypt.hash('SecurePass123', 10);
-    const userId = 'user_123_seeded_00000000000000000000'; // Must be valid UUID format or we just use a real one
-    
-    // Use a fixed UUID for testing
-    const fixedUserId = '00000000-0000-0000-0000-000000000001';
-    
-    console.log(`Seeding test user: test@example.com (${fixedUserId})`);
-    await testDbClient.query(`
-      INSERT INTO users (id, email, password_hash, full_name)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (email) DO NOTHING
-    `, [fixedUserId, 'test@example.com', hashedPass, 'Test User']);
-    
-    await testDbClient.end();
     console.log('Test database setup complete! ✅');
 
   } catch (error) {

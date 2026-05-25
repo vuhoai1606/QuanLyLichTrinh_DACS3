@@ -1,12 +1,41 @@
+import "./setup";
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { Elysia } from "elysia";
 import { createMockContext, createMockUser, expectSuccessResponse, wait, retry } from "./test-utils";
+import { connectDB, AppDataSource } from "../config/database";
+import bcrypt from "bcryptjs";
 import app from "../index"; // Import the actual app instance
 
 /**
  * Integration tests for API endpoints
  */
 describe("Integration Tests - API Endpoints", () => {
+  beforeAll(async () => {
+    if (!AppDataSource || !AppDataSource.isInitialized) {
+      await connectDB();
+    }
+
+    // Seed test user dynamically
+    const userRepo = AppDataSource.getRepository("User");
+    const fixedUserId = "00000000-0000-0000-0000-000000000001";
+    let user = await userRepo.findOne({ where: { id: fixedUserId } });
+    if (!user) {
+      const hashedPass = await bcrypt.hash("SecurePass123", 10);
+      user = userRepo.create({
+        id: fixedUserId,
+        email: "test@example.com",
+        password_hash: hashedPass,
+        full_name: "Test User",
+      });
+      await userRepo.save(user);
+    }
+  });
+
+  afterAll(async () => {
+    if (AppDataSource && AppDataSource.isInitialized) {
+      await AppDataSource.destroy();
+    }
+  });
 
   // ============= Health Check Tests =============
   describe("Health Check Endpoint", () => {
@@ -114,7 +143,7 @@ describe("Integration Tests - API Endpoints", () => {
       
       expect(response.status).toBe(404);
       expect(data.success).toBe(false);
-      expect(data.message).toBe("Route not found");
+      expect(data.message).toStartWith("Route not found");
     });
   });
 

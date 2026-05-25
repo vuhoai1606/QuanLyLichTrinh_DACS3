@@ -4,7 +4,7 @@ const { Client } = pg;
 const client = new Client({
   host: "localhost",
   port: 5432,
-  database: "Quan_Li_Lich_Trinh",
+  database: "Quan_li_Lich_Trinh",
   user: "postgres",
   password: "v01215335600",
 });

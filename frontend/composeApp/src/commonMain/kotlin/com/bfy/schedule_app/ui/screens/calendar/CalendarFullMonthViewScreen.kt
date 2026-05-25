@@ -23,7 +23,10 @@ import androidx.compose.runtime.getValue
 
 
 @Composable
-fun CalendarFullMonthViewScreen(viewModel: CalendarViewModel) {
+fun CalendarFullMonthViewScreen(
+    viewModel: CalendarViewModel,
+    onItemClick: (com.bfy.schedule_app.data.remote.model.ScheduleDto) -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedDate = uiState.selectedDate
 
@@ -38,7 +41,7 @@ fun CalendarFullMonthViewScreen(viewModel: CalendarViewModel) {
         item { Spacer(modifier = Modifier.height(8.dp)) }
         item { MonthGrid(selectedDate = selectedDate, schedules = uiState.schedules, onDateSelected = { viewModel.onDateSelected(it) }) }
         item { Spacer(modifier = Modifier.height(24.dp)) }
-        item { AgendaSection(selectedDate, uiState.schedules) }
+        item { AgendaSection(selectedDate, uiState.schedules, onItemClick) }
 
         item { Spacer(modifier = Modifier.height(100.dp)) }
     }
@@ -121,7 +124,11 @@ fun MonthGrid(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data
 }
 
 @Composable
-fun AgendaSection(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>) {
+fun AgendaSection(
+    selectedDate: LocalDate,
+    schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>,
+    onItemClick: (com.bfy.schedule_app.data.remote.model.ScheduleDto) -> Unit
+) {
     val daySchedules = schedules.filter { schedule ->
         val itemDate = try {
             val startStr = schedule.start_time ?: schedule.deadline
@@ -164,15 +171,21 @@ fun AgendaSection(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.
                 "All Day"
             }
 
-             com.bfy.schedule_app.ui.screens.homedashboard.TimelineEventItem(
-                tag = "[${schedule.type.first()}] ${schedule.type}",
-                tagBg = if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF),
-                tagColor = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFAD7BFF),
-                time = localTime,
-                title = schedule.title,
-                subtitle = schedule.location ?: schedule.description ?: "",
-                borderColor = if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF)
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onItemClick(schedule) }
+            ) {
+                com.bfy.schedule_app.ui.screens.homedashboard.TimelineEventItem(
+                    tag = "[${schedule.type.first()}] ${schedule.type}",
+                    tagBg = if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF),
+                    tagColor = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFAD7BFF),
+                    time = localTime,
+                    title = schedule.title,
+                    subtitle = schedule.location ?: schedule.description ?: "",
+                    borderColor = if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF)
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
         }
     }

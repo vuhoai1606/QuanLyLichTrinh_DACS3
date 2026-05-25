@@ -38,7 +38,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     "/profile",
     async (ctx: AuthContext) => {
       authMiddleware(ctx);
-      const body = await (ctx.request as any).json();
+      const body = (ctx as any).body;
       return authController.updateProfile(ctx, body);
     },
     { tags: ["Auth"] }
@@ -47,7 +47,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     "/change-password",
     async (ctx: AuthContext) => {
       authMiddleware(ctx);
-      const body = await (ctx.request as any).json();
+      const body = (ctx as any).body;
       return authController.changePassword(ctx, body);
     },
     { tags: ["Auth"] }

@@ -153,12 +153,13 @@ export class CollaborationService {
 
     const tasks = await scheduleRepository.find({
       where: { group_id },
-      relations: ["category", "reminders", "collaborators", "collaborators.user"],
+      relations: ["category", "reminders", "assignments", "assignments.assignee"],
       order: { created_at: "DESC" },
     });
 
     return tasks.map((task: any) => ({
       id: task.id,
+      group_id: task.group_id,
       title: task.title,
       description: task.description,
       type: task.type,
@@ -168,11 +169,7 @@ export class CollaborationService {
       start_time: task.start_time,
       end_time: task.end_time,
       creator_id: task.creator_id,
-      assignees: task.collaborators?.map((c: any) => ({
-        id: c.user.id,
-        full_name: c.user.full_name,
-        avatar_url: c.user.avatar_url,
-      })) || [],
+      assignees: task.assignments?.map((a: any) => a.assignee?.full_name).filter(Boolean) || [],
       created_at: task.created_at,
     }));
   }
@@ -451,33 +448,40 @@ export class CollaborationService {
 
   async getSharedWithMe(user_id: string): Promise<any> {
     const collaboratorRepository = AppDataSource.getRepository("TaskCollaborator");
+    const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
     const scheduleRepository = AppDataSource.getRepository("Schedule");
+    const { In } = require("typeorm");
 
     const collaborations = await collaboratorRepository.find({
       where: { user_id },
     });
 
-    // Return early if no collaborations
-    if (collaborations.length === 0) {
+    const assignments = await assignmentRepository.find({
+      where: { assignee_id: user_id },
+    });
+
+    const collabScheduleIds = collaborations.map(c => c.schedule_id);
+    const assignScheduleIds = assignments.map(a => a.schedule_id);
+
+    const allScheduleIds = Array.from(new Set([...collabScheduleIds, ...assignScheduleIds]));
+
+    if (allScheduleIds.length === 0) {
       return {
         totalShared: 0,
         schedules: [],
       };
     }
 
-    const scheduleIds = collaborations.map(c => c.schedule_id);
-
-    // Use proper TypeORM In operator
-    const { In } = require("typeorm");
     const schedules = await scheduleRepository.find({
-      where: { id: In(scheduleIds) },
+      where: { id: In(allScheduleIds) },
+      relations: ["creator", "category", "reminders"],
     });
 
     return {
       totalShared: schedules.length,
-      schedules: schedules.map(s => ({
+      schedules: schedules.map((s: any) => ({
         ...s,
-        permission: collaborations.find(c => c.schedule_id === s.id)?.permission_level,
+        permission: collaborations.find(c => c.schedule_id === s.id)?.permission_level || "VIEW",
       })),
     };
   }

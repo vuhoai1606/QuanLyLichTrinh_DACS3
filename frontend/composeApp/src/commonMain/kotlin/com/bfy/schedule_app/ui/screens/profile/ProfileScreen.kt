@@ -437,13 +437,13 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                         viewModel.updateSettings(mapOf("notifications_enabled" to it))
                     }
                 )
-                Divider(color = Color(0x1A3C4946), thickness = 1.dp)
-                SettingToggleRow(
-                    title = Localization.get("focus_reminders"), 
-                    checked = true, 
-                    icon = Icons.Default.AddCircle, 
-                    onCheckedChange = { }
-                )
+//                Divider(color = Color(0x1A3C4946), thickness = 1.dp)
+//                SettingToggleRow(
+//                    title = Localization.get("focus_reminders"), 
+//                    checked = true, 
+//                    icon = Icons.Default.AddCircle, 
+//                    onCheckedChange = { }
+//                )
             }
         }
         

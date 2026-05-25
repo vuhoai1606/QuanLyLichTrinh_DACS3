@@ -29,7 +29,7 @@ export class UserController {
         return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
       }
 
-      const body = await ctx.request.json();
+      const body = ctx.body;
       const updatedProfile = await userService.updateProfile(userId, body);
 
       return successResponse(updatedProfile, "Profile updated successfully");
@@ -64,6 +64,9 @@ export class UserController {
 
   // Get public profile
   async getPublicProfile(userId: string) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      return errorResponse(404, "User not found", "USER_NOT_FOUND");
+    }
     try {
       const profile = await userService.getUserPublicProfile(userId);
 
@@ -86,6 +89,9 @@ export class UserController {
 
   // Get user stats
   async getUserStats(userId: string) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      return errorResponse(404, "User not found", "USER_NOT_FOUND");
+    }
     try {
       const stats = await userService.getUserStats(userId);
 

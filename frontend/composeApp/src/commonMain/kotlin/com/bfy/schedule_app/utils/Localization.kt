@@ -324,7 +324,7 @@ object Localization {
     )
 
     fun get(key: String): String {
-        return translations[currentLanguage]?.get(key.lowercase()) ?: key
+        return translations[Language.ENGLISH]?.get(key.lowercase()) ?: key
     }
 
     fun getMonth(month: kotlinx.datetime.Month): String {

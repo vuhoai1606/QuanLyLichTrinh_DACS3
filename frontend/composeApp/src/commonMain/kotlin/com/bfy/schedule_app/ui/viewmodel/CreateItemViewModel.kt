@@ -41,6 +41,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
         recurrence: String? = null, // "Never", "Daily", "Weekly", "Monthly"
         reminders: List<String> = emptyList(),
         categoryName: String? = null,
+        categoryColor: String? = null,
         isAlarm: Boolean = false,
         isCountdown: Boolean = false
     ) {
@@ -71,6 +72,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                         )
                     },
                     category_name = categoryName,
+                    category_color = categoryColor,
                     is_countdown_enabled = isCountdown
                 )
                 repository.createSchedule(schedule)
@@ -94,6 +96,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
         recurrence: String? = null,
         reminders: List<String> = emptyList(),
         categoryName: String? = null,
+        categoryColor: String? = null,
         isAlarm: Boolean = false,
         isCountdown: Boolean = false
     ) {
@@ -120,6 +123,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                     deadline = deadline,
                     is_all_day = isAllDay,
                     category_name = categoryName,
+                    category_color = categoryColor,
                     is_recurring = isRecurring,
                     recurrence_type = recurrenceType,
                     is_countdown_enabled = isCountdown,

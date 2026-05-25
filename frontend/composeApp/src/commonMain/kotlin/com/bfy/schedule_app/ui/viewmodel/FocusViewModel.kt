@@ -54,7 +54,7 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
 
     fun confirmExitFocus() {
         _uiState.update { it.copy(showExitConfirmation = false) }
-        resetTimer()
+        giveUpSession()
     }
 
     fun cancelExitFocus() {
@@ -62,8 +62,30 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
     }
 
     fun triggerExitConfirmation() {
-        if (_uiState.value.isRunning) {
-            _uiState.update { it.copy(showExitConfirmation = true) }
+        // No-op or we can keep it as is, but UI will not use it
+    }
+
+    fun giveUpSession() {
+        pauseTimer()
+        val target = _uiState.value.targetMinutes
+        _uiState.update { it.copy(isRunning = false, timeLeft = target * 60) }
+        viewModelScope.launch {
+            try {
+                repository.createFocusSession(target, "FAILED")
+                loadFocusData()
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun sessionCompleted() {
+        pauseTimer()
+        val target = _uiState.value.targetMinutes
+        _uiState.update { it.copy(isRunning = false, timeLeft = target * 60) }
+        viewModelScope.launch {
+            try {
+                repository.createFocusSession(target, "COMPLETED")
+                loadFocusData()
+            } catch (e: Exception) {}
         }
     }
 
@@ -74,15 +96,7 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
                 kotlinx.coroutines.delay(1000)
                 _uiState.update { it.copy(timeLeft = it.timeLeft - 1) }
             }
-            _uiState.update { it.copy(isRunning = false) }
-            
-            // Record completed session to BE
-            try {
-                repository.createFocusSession(_uiState.value.targetMinutes, "COMPLETED")
-                loadFocusData() // Refresh stats
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to save session: ${e.message}") }
-            }
+            sessionCompleted()
         }
     }
 
@@ -93,7 +107,7 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
 
     fun resetTimer() {
         pauseTimer()
-        _uiState.update { it.copy(timeLeft = it.targetMinutes * 60) }
+        _uiState.update { it.copy(timeLeft = _uiState.value.targetMinutes * 60) }
     }
 
     fun setFocusTime(minutes: Int) {

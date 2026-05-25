@@ -1,6 +1,7 @@
 package com.bfy.schedule_app.ui.screens.calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -26,20 +27,21 @@ import kotlinx.datetime.toLocalDateTime
 
 
 @Composable
-fun CalendarDayViewScreen(viewModel: CalendarViewModel = viewModel { CalendarViewModel() }) {
+fun CalendarDayViewScreen(
+    viewModel: CalendarViewModel = viewModel { CalendarViewModel() },
+    onItemClick: (com.bfy.schedule_app.data.remote.model.ScheduleDto) -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedDate = uiState.selectedDate
 
     Column(
-
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
     ) {
         DayHeader(selectedDate)
         Spacer(modifier = Modifier.height(16.dp))
-        DayTimeGrid(selectedDate, uiState.schedules)
-
+        DayTimeGrid(selectedDate, uiState.schedules, onItemClick)
     }
 }
 
@@ -66,7 +68,11 @@ fun DayHeader(date: kotlinx.datetime.LocalDate) {
 
 
 @Composable
-fun DayTimeGrid(date: kotlinx.datetime.LocalDate, schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>) {
+fun DayTimeGrid(
+    date: kotlinx.datetime.LocalDate,
+    schedules: List<com.bfy.schedule_app.data.remote.model.ScheduleDto>,
+    onItemClick: (com.bfy.schedule_app.data.remote.model.ScheduleDto) -> Unit
+) {
     val daySchedules = schedules.filter { schedule ->
         val itemDate = try {
             val startStr = schedule.start_time ?: schedule.deadline
@@ -83,7 +89,7 @@ fun DayTimeGrid(date: kotlinx.datetime.LocalDate, schedules: List<com.bfy.schedu
 
     Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Column {
-            for (hour in 9..17) {
+            for (hour in 0..23) {
                 Row(modifier = Modifier.fillMaxWidth().height(80.dp)) {
                     Box(modifier = Modifier.width(70.dp).padding(end = 12.dp), contentAlignment = Alignment.TopEnd) {
                         Text("$hour:00", color = TextSecondary, fontSize = 14.sp)
@@ -113,15 +119,21 @@ fun DayTimeGrid(date: kotlinx.datetime.LocalDate, schedules: List<com.bfy.schedu
                     "All Day"
                 }
 
-                com.bfy.schedule_app.ui.screens.homedashboard.TimelineEventItem(
-                    tag = "[${schedule.type.first()}] ${schedule.type}",
-                    tagBg = if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF),
-                    tagColor = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFAD7BFF),
-                    time = localTime,
-                    title = schedule.title,
-                    subtitle = schedule.location ?: schedule.description ?: "",
-                    borderColor = if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onItemClick(schedule) }
+                ) {
+                    com.bfy.schedule_app.ui.screens.homedashboard.TimelineEventItem(
+                        tag = "[${schedule.type.first()}] ${schedule.type}",
+                        tagBg = if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF),
+                        tagColor = if (schedule.type == "EVENT") Color(0xFF92B4FF) else Color(0xFFAD7BFF),
+                        time = localTime,
+                        title = schedule.title,
+                        subtitle = schedule.location ?: schedule.description ?: "",
+                        borderColor = if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF)
+                    )
+                }
             }
         }
     }

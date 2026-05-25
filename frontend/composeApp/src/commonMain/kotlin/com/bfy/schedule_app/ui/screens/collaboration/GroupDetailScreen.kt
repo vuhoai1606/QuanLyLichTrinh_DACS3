@@ -37,6 +37,7 @@ fun GroupDetailScreen(
     
     var showAddTaskDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var addTaskType by remember { mutableStateOf("ANNOUNCEMENT") }
 
     LaunchedEffect(groupId) {
         viewModel.loadTasks(groupId)
@@ -59,7 +60,7 @@ fun GroupDetailScreen(
             item { Spacer(modifier = Modifier.height(24.dp)) }
 
             item {
-                SharedTasksHeader(onAddTaskClick = { showAddTaskDialog = true })
+                SharedTasksHeader(onAddClick = { type -> addTaskType = type; showAddTaskDialog = true })
             }
 
             item { Spacer(modifier = Modifier.height(12.dp)) }
@@ -102,6 +103,7 @@ fun GroupDetailScreen(
             AssignTaskDialog(
                 groupId = groupId,
                 viewModel = viewModel,
+                initialType = addTaskType,
                 onDismissRequest = { showAddTaskDialog = false }
             )
         }
@@ -199,44 +201,13 @@ private fun GroupHeaderCard(
             .border(1.dp, Color(0xFF333538), RoundedCornerShape(12.dp))
             .padding(25.dp)
     ) {
-        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = group?.name ?: Localization.get("loading"),
-                    color = Color(0xFFE2E2E6),
-                    fontSize = 34.sp,
-                    lineHeight = 40.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Group, contentDescription = null, tint = Color(0xFFBBCAC5), modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = group?.description ?: Localization.get("no_desc"),
-                        color = Color(0xFFBBCAC5),
-                        fontSize = 16.sp,
-                        lineHeight = 24.sp
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(Color(0x332D1B4A))
-                    .border(1.dp, Color(0x4DAD7BFF), RoundedCornerShape(9999.dp))
-                    .padding(horizontal = 13.dp, vertical = 5.dp)
-            ) {
-                Text(
-                    text = Localization.get("group_info") ?: "Group\nInfo",
-                    color = Color(0xFFD5BAFF),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
+        Text(
+            text = group?.name ?: Localization.get("loading"),
+            color = Color(0xFFE2E2E6),
+            fontSize = 34.sp,
+            lineHeight = 40.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -305,7 +276,9 @@ private fun ActiveMemberAvatar(color: Color, initials: String, active: Boolean) 
 }
 
 @Composable
-private fun SharedTasksHeader(onAddTaskClick: () -> Unit) {
+private fun SharedTasksHeader(onAddClick: (String) -> Unit) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -317,22 +290,31 @@ private fun SharedTasksHeader(onAddTaskClick: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold
         )
- 
+        Box {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(9999.dp))
+                    .size(36.dp)
+                    .clip(CircleShape)
                     .background(Color(0xFF59DBC7))
-                    .shadow(
-                        elevation = 4.dp,
-                        shape = RoundedCornerShape(9999.dp)
-                    )
-                    .clickable { onAddTaskClick() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable { menuExpanded = true },
+                contentAlignment = Alignment.Center
             ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF003731), modifier = Modifier.size(10.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(Localization.get("assign_task"), color = Color(0xFF003731), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Default.Add, contentDescription = "Add", tint = Color(0xFF003731), modifier = Modifier.size(20.dp))
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                modifier = Modifier.background(Color(0xFF282A2D))
+            ) {
+                DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("ANNOUNCEMENT") }) {
+                    Text("Thông báo", color = Color(0xFFE2E2E6))
+                }
+                DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("TASK") }) {
+                    Text("Công việc", color = Color(0xFFE2E2E6))
+                }
+                DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("EVENT") }) {
+                    Text("Sự kiện", color = Color(0xFFE2E2E6))
+                }
             }
         }
     }

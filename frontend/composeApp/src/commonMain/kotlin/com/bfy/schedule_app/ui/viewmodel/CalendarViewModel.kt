@@ -62,4 +62,40 @@ class CalendarViewModel(private val repository: AppRepository = AppRepository())
         }
         _uiState.value = _uiState.value.copy(selectedDate = prev)
     }
+
+    fun nextDay() {
+        val current = _uiState.value.selectedDate
+        val next = current.plus(1, DateTimeUnit.DAY)
+        _uiState.value = _uiState.value.copy(selectedDate = next)
+    }
+
+    fun prevDay() {
+        val current = _uiState.value.selectedDate
+        val prev = current.minus(1, DateTimeUnit.DAY)
+        _uiState.value = _uiState.value.copy(selectedDate = prev)
+    }
+
+    fun nextWeek() {
+        val current = _uiState.value.selectedDate
+        val next = current.plus(1, DateTimeUnit.WEEK)
+        _uiState.value = _uiState.value.copy(selectedDate = next)
+    }
+
+    fun prevWeek() {
+        val current = _uiState.value.selectedDate
+        val prev = current.minus(1, DateTimeUnit.WEEK)
+        _uiState.value = _uiState.value.copy(selectedDate = prev)
+    }
+
+    fun nextYear() {
+        val current = _uiState.value.selectedDate
+        val next = current.plus(1, DateTimeUnit.YEAR)
+        _uiState.value = _uiState.value.copy(selectedDate = next)
+    }
+
+    fun prevYear() {
+        val current = _uiState.value.selectedDate
+        val prev = current.minus(1, DateTimeUnit.YEAR)
+        _uiState.value = _uiState.value.copy(selectedDate = prev)
+    }
 }

@@ -72,11 +72,9 @@ export const requestIdMiddleware = (ctx: any) => {
   storeRequestContext(context);
 
   // Add request ID to response headers
-  ctx.response = new Response(ctx.response, {
-    headers: {
-      "X-Request-ID": requestId,
-    },
-  });
+  if (!ctx.set) ctx.set = {};
+  if (!ctx.set.headers) ctx.set.headers = {};
+  ctx.set.headers["X-Request-ID"] = requestId;
 
   // Log request
   logger.debug("📨 Incoming Request", {

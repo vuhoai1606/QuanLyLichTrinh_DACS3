@@ -42,13 +42,24 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val platformContext = com.bfy.schedule_app.platform.rememberPlatformContext()
+
     // Detect when app goes to background or returns
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, uiState.isRunning, uiState.timeLeft, uiState.targetMinutes) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                // If user returns to app and it was running, show confirmation
+            if (event == Lifecycle.Event.ON_STOP) {
                 if (uiState.isRunning) {
-                    viewModel.triggerExitConfirmation()
+                    com.bfy.schedule_app.platform.FocusServiceManager.startFocusService(
+                        platformContext,
+                        uiState.targetMinutes,
+                        uiState.timeLeft
+                    )
+                }
+            } else if (event == Lifecycle.Event.ON_RESUME) {
+                com.bfy.schedule_app.platform.FocusServiceManager.stopFocusService(platformContext)
+                if (com.bfy.schedule_app.platform.FocusSessionSharedState.isGiveUpTriggered) {
+                    com.bfy.schedule_app.platform.FocusSessionSharedState.isGiveUpTriggered = false
+                    viewModel.giveUpSession()
                 }
             }
         }
@@ -56,11 +67,6 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
-    }
-
-    // Handle system back button (e.g. trying to exit app)
-    com.bfy.schedule_app.BackHandlerWrapper(enabled = uiState.isRunning) {
-        viewModel.triggerExitConfirmation()
     }
 
     var showTimePickerDialog by remember { mutableStateOf(false) }
@@ -193,43 +199,41 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                     }
                 }
 
-                // Action Button Positioned Absolute on bottom of the circle
-                Box(
-                    modifier = Modifier
-                        .width(250.dp)
-                        .align(Alignment.BottomCenter)
-                        .offset(y = 28.dp) // shift down
-                        .shadow(8.dp, RoundedCornerShape(percent = 50))
-                        .clip(RoundedCornerShape(percent = 50))
-                        .background(Color(0xFF59DBC7))
-                        .clickable { 
-                            if (!uiState.isRunning) {
-                                viewModel.confirmStartFocus() 
-                            } else {
-                                // If running, we might want to pause or show exit confirmation?
-                                // User said "k thể click vào cái khác", but usually pause is allowed.
-                                // However, they said "k thể chuyển sang các tab khác", "chỉ ở trog đó khi thời gian đó nó kết thúc".
-                                // If they want to pause, they can.
-                                viewModel.onStartFocusClick()
+                if (!uiState.isRunning) {
+                    // Action Button Positioned Absolute on bottom of the circle
+                    Box(
+                        modifier = Modifier
+                            .width(250.dp)
+                            .align(Alignment.BottomCenter)
+                            .offset(y = 28.dp) // shift down
+                            .shadow(8.dp, RoundedCornerShape(percent = 50))
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(Color(0xFF59DBC7))
+                            .clickable {
+                                if (!uiState.isRunning) {
+                                    viewModel.confirmStartFocus()
+                                } else {
+                                    viewModel.onStartFocusClick()
+                                }
                             }
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (uiState.isRunning) "Pause" else "Start",
+                                tint = Color(0xFF003731),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (uiState.isRunning) Localization.get("pause_focus") else Localization.get("start_focus"),
+                                color = Color(0xFF003731),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (uiState.isRunning) "Pause" else "Start",
-                            tint = Color(0xFF003731),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (uiState.isRunning) Localization.get("pause_focus") else Localization.get("start_focus"),
-                            color = Color(0xFF003731),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
                     }
                 }
             }
@@ -285,31 +289,6 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
             }
 
 
-        }
-
-
-        if (uiState.showExitConfirmation) {
-            AlertDialog(
-                onDismissRequest = { viewModel.cancelExitFocus() },
-                title = { Text(text = Localization.get("focus_stop_title"), fontWeight = FontWeight.Bold) },
-                text = { Text(text = Localization.get("focus_stop_msg")) },
-                confirmButton = {
-                    Button(
-                        onClick = { viewModel.confirmExitFocus() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4D4D))
-                    ) {
-                        Text(Localization.get("focus_stop_btn"), color = Color.White)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.cancelExitFocus() }) {
-                        Text(Localization.get("focus_stay_btn"), color = Color.Gray)
-                    }
-                },
-                containerColor = Color(0xFF1E2023),
-                titleContentColor = Color.White,
-                textContentColor = Color(0xFFBBCAC5)
-            )
         }
 
         if (showTimePickerDialog) {

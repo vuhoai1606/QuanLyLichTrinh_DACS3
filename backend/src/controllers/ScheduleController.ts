@@ -37,6 +37,20 @@ export class ScheduleController {
     }
   }
 
+  // Get all categories for user
+  async getCategories(userId: string) {
+    if (!userId) {
+      return errorResponse(400, "userId required", "MISSING_FIELDS");
+    }
+
+    try {
+      const categories = await scheduleService.getCategoriesForUser(userId);
+      return successResponse(categories, "Categories retrieved");
+    } catch (error) {
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
   // Create category
   async createCategory(body: any) {
     const { user_id, name, hex_color } = body;
