@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
-import { Schedule } from "./Schedule";
+import type { User } from "./User";
+import type { Schedule } from "./Schedule";
 
 @Entity("share_logs")
 export class ShareLog {
@@ -25,15 +25,15 @@ export class ShareLog {
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
 
-  @ManyToOne(() => Schedule, { onDelete: "CASCADE" })
+  @ManyToOne("Schedule", { onDelete: "CASCADE" })
   @JoinColumn({ name: "schedule_id" })
   schedule: Schedule;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @ManyToOne("User", { onDelete: "CASCADE" })
   @JoinColumn({ name: "sender_id" })
   sender: User;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @ManyToOne("User", { onDelete: "CASCADE" })
   @JoinColumn({ name: "recipient_id" })
   recipient: User;
 }

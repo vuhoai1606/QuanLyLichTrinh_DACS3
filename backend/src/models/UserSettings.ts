@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn, UpdateDateColumn } from "typeorm";
-import { User } from "./User";
+import type { User } from "./User";
 
 @Entity("user_settings")
 export class UserSettings {
@@ -27,7 +27,7 @@ export class UserSettings {
   @UpdateDateColumn({ type: "timestamp" })
   updated_at!: Date;
 
-  @OneToOne(() => User, (user) => user.settings, { onDelete: "CASCADE" })
+  @OneToOne("User", (user: any) => user.settings, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user!: User;
 }

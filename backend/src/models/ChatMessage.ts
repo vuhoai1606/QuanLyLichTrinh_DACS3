@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
-import { Group } from "./Group";
+import type { User } from "./User";
+import type { Group } from "./Group";
 
 @Entity("chat_messages")
 export class ChatMessage {
@@ -10,14 +10,14 @@ export class ChatMessage {
   @Column({ name: "group_id" })
   groupId: string;
 
-  @ManyToOne(() => Group)
+  @ManyToOne("Group")
   @JoinColumn({ name: "group_id" })
   group: Group;
 
   @Column({ name: "sender_id" })
   senderId: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne("User")
   @JoinColumn({ name: "sender_id" })
   sender: User;
 
@@ -33,3 +33,4 @@ export class ChatMessage {
   @CreateDateColumn()
   created_at: Date;
 }
+

@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
-import { Schedule } from "./Schedule";
+import type { Schedule } from "./Schedule";
 
 @Entity("reminders")
 export class Reminder {
@@ -24,7 +24,7 @@ export class Reminder {
   @Column({ type: "timestamp", nullable: true })
   last_triggered_at: Date;
 
-  @ManyToOne(() => Schedule, (schedule) => schedule.reminders, { onDelete: "CASCADE" })
+  @ManyToOne("Schedule", (schedule) => schedule.reminders, { onDelete: "CASCADE" })
   @JoinColumn({ name: "schedule_id" })
   schedule: Schedule;
 }

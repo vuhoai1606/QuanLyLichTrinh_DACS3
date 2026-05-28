@@ -28,6 +28,7 @@ import { HealthCheckService } from "@services/HealthCheckService";
 import { MetricsCollector, RequestMetrics } from "@services/MetricsCollector";
 import { AlertManager, setupDefaultAlerts } from "@services/AlertManager";
 import gamificationService from "@services/GamificationService";
+import NotificationWorker from "./workers/NotificationWorker";
 // import { websocket } from "@elysiajs/websocket"; // Temporarily disabled due to compatibility issues
 import { rateLimit } from "elysia-rate-limit";
 import webSocketService from "@services/WebSocketService";
@@ -137,6 +138,9 @@ const start = async () => {
     logger.info("🔌 Connecting to PostgreSQL...");
     await connectDB();
     logger.info("✅ PostgreSQL connected successfully");
+
+    // Start background workers
+    NotificationWorker.start();
 
     // Setup monitoring
     logger.info("📊 Setting up monitoring and observability...");

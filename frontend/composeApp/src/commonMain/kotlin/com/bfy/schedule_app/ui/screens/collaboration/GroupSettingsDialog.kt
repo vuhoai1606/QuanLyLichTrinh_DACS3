@@ -22,6 +22,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bfy.schedule_app.ui.theme.*
 import com.bfy.schedule_app.ui.viewmodel.GroupDetailViewModel
+import com.bfy.schedule_app.utils.Localization
 
 @Composable
 fun GroupSettingsDialog(
@@ -62,7 +63,7 @@ fun GroupSettingsDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Cài đặt nhóm", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(Localization.get("group_settings") ?: "Group Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     IconButton(onClick = onDismissRequest) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = TextPrimary)
                     }
@@ -70,13 +71,13 @@ fun GroupSettingsDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (myRole == "LEADER" || myRole == "DEPUTY") {
-                    Text("Ảnh đại diện nhóm", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Text(Localization.get("group_avatar") ?: "Group Avatar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
                         value = avatarUrl,
                         onValueChange = { avatarUrl = it },
-                        label = { Text("URL ảnh nhóm") },
+                        label = { Text(Localization.get("group_image_url") ?: "Group Image URL") },
                         placeholder = { Text("https://example.com/avatar.jpg", color = Color(0xFF869490)) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -91,7 +92,7 @@ fun GroupSettingsDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Tên nhóm") },
+                        label = { Text(Localization.get("group_name") ?: "Group Name") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
                             textColor = TextPrimary,
@@ -104,13 +105,13 @@ fun GroupSettingsDialog(
 
 
                 } else {
-                    Text("Tên nhóm: ${group?.name}", color = TextPrimary, fontSize = 16.sp)
+                    Text("${Localization.get("group_name") ?: "Group Name"}: ${group?.name}", color = TextPrimary, fontSize = 16.sp)
 
                 }
 
                 if (myRole == "LEADER" || myRole == "DEPUTY") {
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text("Thêm thành viên", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(Localization.get("add_members") ?: "Add members", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
@@ -119,7 +120,7 @@ fun GroupSettingsDialog(
                             searchQuery = it 
                             viewModel.searchUsers(it)
                         },
-                        label = { Text("Tìm theo tên hoặc email") },
+                        label = { Text(Localization.get("search_by_name_email") ?: "Search by name or email") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
                             textColor = TextPrimary,
@@ -168,7 +169,7 @@ fun GroupSettingsDialog(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Thành viên (${localMembers.size})", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text("${Localization.get("members") ?: "Members"} (${localMembers.size})", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 LazyColumn(modifier = Modifier.weight(1f)) {
@@ -229,7 +230,7 @@ fun GroupSettingsDialog(
                                                 .padding(vertical = 4.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text("Thành viên", color = if (member.role == "MEMBER") Color(0xFF003731) else TextSecondary, fontSize = 12.sp, fontWeight = if (member.role == "MEMBER") FontWeight.Bold else FontWeight.Normal)
+                                            Text(Localization.get("member") ?: "Member", color = if (member.role == "MEMBER") Color(0xFF003731) else TextSecondary, fontSize = 12.sp, fontWeight = if (member.role == "MEMBER") FontWeight.Bold else FontWeight.Normal)
                                         }
                                         Box(
                                             modifier = Modifier
@@ -243,15 +244,15 @@ fun GroupSettingsDialog(
                                                 .padding(vertical = 4.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text("Phó nhóm", color = if (member.role == "DEPUTY") Color(0xFF003731) else TextSecondary, fontSize = 12.sp, fontWeight = if (member.role == "DEPUTY") FontWeight.Bold else FontWeight.Normal)
+                                            Text(Localization.get("deputy") ?: "Deputy", color = if (member.role == "DEPUTY") Color(0xFF003731) else TextSecondary, fontSize = 12.sp, fontWeight = if (member.role == "DEPUTY") FontWeight.Bold else FontWeight.Normal)
                                         }
                                     }
                                 } else {
                                     Text(
                                         text = when (member.role) {
-                                            "LEADER" -> "Trưởng nhóm"
-                                            "DEPUTY" -> "Phó nhóm"
-                                            else -> "Thành viên"
+                                            "LEADER" -> Localization.get("leader") ?: "Leader"
+                                            "DEPUTY" -> Localization.get("deputy") ?: "Deputy"
+                                            else -> Localization.get("member") ?: "Member"
                                         },
                                         color = roleColor,
                                         fontSize = 12.sp,
@@ -307,7 +308,7 @@ fun GroupSettingsDialog(
                         if (uiState.isLoading) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                         } else {
-                            Text("Lưu thay đổi", color = if (isDirty) Color(0xFF003731) else Color.Gray, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(Localization.get("save_changes") ?: "Save changes", color = if (isDirty) Color(0xFF003731) else Color.Gray, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
+import type { User } from "./User";
 import { Badge } from "./Badge";
 
 @Entity("user_badges")
@@ -13,7 +13,7 @@ export class UserBadge {
   @CreateDateColumn({ type: "timestamp" })
   unlocked_at: Date;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @ManyToOne("User", { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 

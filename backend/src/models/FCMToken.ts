@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
+import type { User } from "./User";
 
 @Entity("fcm_tokens")
 export class FCMToken {
@@ -24,7 +24,7 @@ export class FCMToken {
   @UpdateDateColumn({ type: "timestamp" })
   updated_at: Date;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @ManyToOne("User", { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 }

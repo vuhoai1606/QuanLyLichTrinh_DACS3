@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import kotlinx.datetime.*
 import com.bfy.schedule_app.ui.screens.homedashboard.DashboardTab
 import com.bfy.schedule_app.ui.viewmodel.GroupDetailViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -75,17 +77,41 @@ fun GroupDetailScreen(
 
             items(uiState.tasks.size) { index ->
                 val task = uiState.tasks[index]
+                val isLeader = uiState.group?.leader_id == uiState.currentUser?.id
                 GroupTaskCard(
-                    status = when(task.status) {
-                        "OVERDUE" -> GroupTaskStatus.OVERDUE
-                        "IN_PROGRESS" -> GroupTaskStatus.IN_PROGRESS
-                        "DONE" -> GroupTaskStatus.TODO
-                        else -> GroupTaskStatus.TODO
+                    status = when(task.type) {
+                        "ANNOUNCEMENT" -> GroupTaskStatus.ANNOUNCEMENT
+                        "EVENT" -> GroupTaskStatus.EVENT
+                        else -> {
+                            val now = Clock.System.now()
+                            val deadlineInstant = task.deadline?.let {
+                                try { Instant.parse(if (!it.contains("T")) "${it}T00:00:00Z" else if (!it.endsWith("Z") && !it.contains("+")) "${it}Z" else it) } catch (e: Exception) { null }
+                            }
+                            val startTimeInstant = task.start_time?.let {
+                                try { Instant.parse(if (!it.contains("T")) "${it}T00:00:00Z" else if (!it.endsWith("Z") && !it.contains("+")) "${it}Z" else it) } catch (e: Exception) { null }
+                            }
+                            
+                            val isOverdue = deadlineInstant != null && deadlineInstant < now
+                            val isStarted = startTimeInstant != null && startTimeInstant <= now
+                            
+                            when {
+                                task.status == "DONE" -> GroupTaskStatus.DONE
+                                task.status == "OVERDUE" || isOverdue -> GroupTaskStatus.OVERDUE
+                                task.status == "IN_PROGRESS" || isStarted -> GroupTaskStatus.IN_PROGRESS
+                                else -> GroupTaskStatus.TODO
+                            }
+                        }
                     },
-                    dateText = task.deadline ?: Localization.get("no_deadline"),
+                    dateText = when(task.type) {
+                        "ANNOUNCEMENT" -> formatRelativeTime(task.created_at)
+                        "EVENT" -> formatRelativeTime(task.start_time ?: task.created_at)
+                        else -> formatRelativeTime(task.deadline ?: task.start_time ?: task.created_at)
+                    },
                     title = task.title,
                     description = task.description ?: "",
-                    assignees = task.assignees
+                    assignees = task.assignees,
+                    canDelete = isLeader || task.creator_id == uiState.currentUser?.id,
+                    onDeleteClick = { viewModel.deleteSchedule(groupId, task.id) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -201,15 +227,34 @@ private fun GroupHeaderCard(
             .border(1.dp, Color(0xFF333538), RoundedCornerShape(12.dp))
             .padding(25.dp)
     ) {
-        Text(
-            text = group?.name ?: Localization.get("loading"),
-            color = Color(0xFFE2E2E6),
-            fontSize = 34.sp,
-            lineHeight = 40.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = group?.name ?: Localization.get("loading"),
+                    color = Color(0xFFE2E2E6),
+                    fontSize = 30.sp,
+                    lineHeight = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Group, contentDescription = null, tint = Color(0xFFBBCAC5), modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${members.size} Members • Top 10% Overall",
+                        color = Color(0xFFBBCAC5),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = Localization.get("active_members"),
@@ -221,13 +266,14 @@ private fun GroupHeaderCard(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy((-12).dp), verticalAlignment = Alignment.CenterVertically) {
             val displayMembers = members.take(4)
-            displayMembers.forEach { member ->
+            displayMembers.forEachIndexed { index, member ->
                 ActiveMemberAvatar(
                     color = Color(0xFF59DBC7), 
                     initials = member.full_name.split(" ").mapNotNull { it.firstOrNull() }.joinToString("").take(2), 
-                    active = true 
+                    active = true,
+                    zIndex = (4 - index).toFloat()
                 )
             }
             if (members.size > 4) {
@@ -247,9 +293,10 @@ private fun GroupHeaderCard(
 }
 
 @Composable
-private fun ActiveMemberAvatar(color: Color, initials: String, active: Boolean) {
+private fun ActiveMemberAvatar(color: Color, initials: String, active: Boolean, zIndex: Float = 1f) {
     Box(
         modifier = Modifier
+            .zIndex(zIndex)
             .size(48.dp)
             .shadow(
                 elevation = if (active) 8.dp else 0.dp,
@@ -285,21 +332,23 @@ private fun SharedTasksHeader(onAddClick: (String) -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = Localization.get("group_tasks"),
+            text = "Shared Tasks",
             color = Color(0xFFE2E2E6),
             fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold
         )
         Box {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFF59DBC7))
-                    .clickable { menuExpanded = true },
-                contentAlignment = Alignment.Center
+                    .clickable { menuExpanded = true }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", tint = Color(0xFF003731), modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Add, contentDescription = "Add", tint = Color(0xFF003731), modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Assign Task", color = Color(0xFF003731), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             DropdownMenu(
                 expanded = menuExpanded,
@@ -307,7 +356,7 @@ private fun SharedTasksHeader(onAddClick: (String) -> Unit) {
                 modifier = Modifier.background(Color(0xFF282A2D))
             ) {
                 DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("ANNOUNCEMENT") }) {
-                    Text("Thông báo", color = Color(0xFFE2E2E6))
+                    Text("Notification", color = Color(0xFFE2E2E6))
                 }
                 DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("TASK") }) {
                     Text("Công việc", color = Color(0xFFE2E2E6))
@@ -351,6 +400,30 @@ private enum class GroupTaskStatus(
         badgeBorder = Color(0xFF3C4946),
         badgeTextColor = Color(0xFFBBCAC5),
         accentStripe = Color(0xFF3C4946)
+    ),
+    DONE(
+        badgeText = Localization.get("done") ?: "Done",
+        borderColor = Color(0x4D59DBC7),
+        badgeBackground = Color(0x33003731),
+        badgeBorder = Color(0x4D59DBC7),
+        badgeTextColor = Color(0xFF59DBC7),
+        accentStripe = Color(0xFF59DBC7)
+    ),
+    ANNOUNCEMENT(
+        badgeText = "Notification",
+        borderColor = Color(0xFF6E4000),
+        badgeBackground = Color(0x33FFD166),
+        badgeBorder = Color(0xFF6E4000),
+        badgeTextColor = Color(0xFFFFD166),
+        accentStripe = Color(0xFFFFD166)
+    ),
+    EVENT(
+        badgeText = "Event",
+        borderColor = Color(0xFF3B1A66),
+        badgeBackground = Color(0x33AD7BFF),
+        badgeBorder = Color(0xFF3B1A66),
+        badgeTextColor = Color(0xFFAD7BFF),
+        accentStripe = Color(0xFFAD7BFF)
     )
 }
 
@@ -360,7 +433,9 @@ private fun GroupTaskCard(
     dateText: String,
     title: String,
     description: String,
-    assignees: List<String>
+    assignees: List<String>,
+    canDelete: Boolean = false,
+    onDeleteClick: (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -375,6 +450,7 @@ private fun GroupTaskCard(
                     .fillMaxHeight()
                     .width(4.dp)
                     .background(stripeColor)
+                    .align(Alignment.CenterStart)
             )
         }
 
@@ -408,22 +484,37 @@ private fun GroupTaskCard(
                     Icon(Icons.Default.Schedule, contentDescription = null, tint = Color(0xFFBBCAC5), modifier = Modifier.size(12.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(dateText, color = Color(0xFFBBCAC5), fontSize = 12.sp, letterSpacing = 0.48.sp)
+                    
+                    if (canDelete) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = Color(0xFFFFB4AB),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { onDeleteClick?.invoke() }
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(title, color = Color(0xFFE2E2E6), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, lineHeight = 28.sp)
+            Text(
+                title, 
+                color = if (status == GroupTaskStatus.DONE) Color(0xFFBBCAC5) else Color(0xFFE2E2E6), 
+                fontSize = 18.sp, 
+                fontWeight = FontWeight.SemiBold, 
+                lineHeight = 28.sp,
+                textDecoration = if (status == GroupTaskStatus.DONE) TextDecoration.LineThrough else null
+            )
             Spacer(modifier = Modifier.height(4.dp))
             Text(description, color = Color(0xFFBBCAC5), fontSize = 16.sp, lineHeight = 24.sp)
 
             if (status == GroupTaskStatus.IN_PROGRESS) {
                 Spacer(modifier = Modifier.height(8.dp))
-                val progressValue = when(status) {
-                    GroupTaskStatus.TODO -> 0.1f
-                    GroupTaskStatus.IN_PROGRESS -> 0.5f
-                    GroupTaskStatus.OVERDUE -> 0.3f
-                }
+                val progressValue = 0.5f
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -450,19 +541,35 @@ private fun GroupTaskCard(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (status == GroupTaskStatus.TODO) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, Color(0xFF3C4946), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF3C4946), modifier = Modifier.size(12.dp))
+            if (status == GroupTaskStatus.TODO || status == GroupTaskStatus.ANNOUNCEMENT || status == GroupTaskStatus.EVENT) {
+                if (assignees.isEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .border(1.dp, Color(0xFF3C4946), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF3C4946), modifier = Modifier.size(12.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(Localization.get("unassigned"), color = Color(0xFF3C4946), fontSize = 12.sp, fontStyle = FontStyle.Italic, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(Localization.get("unassigned"), color = Color(0xFF3C4946), fontSize = 12.sp, fontStyle = FontStyle.Italic, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy((-8).dp), verticalAlignment = Alignment.CenterVertically) {
+                        assignees.take(2).forEachIndexed { index, _ ->
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(if (index == 0) Color(0xFF2D1B4A) else Color(0xFF2A2D31))
+                                    .border(1.dp, Color(0xFF1E2023), CircleShape)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(assignees.joinToString(", "), color = Color(0xFFBBCAC5), fontSize = 12.sp, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
+                    }
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy((-8).dp), verticalAlignment = Alignment.CenterVertically) {
@@ -542,5 +649,33 @@ private fun BoxScope.BottomNavBar(
         ) {
             Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
         }
+    }
+}
+
+private fun formatRelativeTime(dateString: String?): String {
+    if (dateString.isNullOrBlank()) return Localization.get("no_time") ?: "No time"
+    try {
+        val parseStr = if (!dateString.contains("T")) "${dateString}T00:00:00Z" 
+                       else if (!dateString.endsWith("Z") && !dateString.contains("+")) "${dateString}Z" 
+                       else dateString
+        val instant = Instant.parse(parseStr)
+        val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val targetDate = localDateTime.date
+        
+        val hour = if (localDateTime.hour == 0) 12 else if (localDateTime.hour > 12) localDateTime.hour - 12 else localDateTime.hour
+        val amPm = if (localDateTime.hour >= 12) "PM" else "AM"
+        val min = localDateTime.minute.toString().padStart(2, '0')
+        val timeStr = "$hour:$min $amPm"
+
+        val daysDiff = targetDate.toEpochDays() - today.toEpochDays()
+        return when (daysDiff) {
+            0 -> "Today, $timeStr"
+            1 -> "Tomorrow"
+            -1 -> "Yesterday"
+            else -> "${targetDate.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }} ${targetDate.dayOfMonth}, $timeStr"
+        }
+    } catch (e: Exception) {
+        return dateString.split("T").firstOrNull() ?: dateString
     }
 }

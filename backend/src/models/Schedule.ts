@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { User } from "./User";
-import { Group } from "./Group";
+import type { User } from "./User";
+import type { Group } from "./Group";
 import { Category } from "./Category";
 import { Reminder } from "./Reminder";
 import { ScheduleAssignment } from "./ScheduleAssignment";
@@ -63,11 +63,11 @@ export class Schedule {
   @UpdateDateColumn({ type: "timestamp" })
   updated_at: Date;
 
-  @ManyToOne(() => User, (user) => user.schedules, { onDelete: "CASCADE" })
+  @ManyToOne("User", (user) => user.schedules, { onDelete: "CASCADE" })
   @JoinColumn({ name: "creator_id" })
   creator: User;
 
-  @ManyToOne(() => Group, (group) => group.schedules, { onDelete: "CASCADE" })
+  @ManyToOne("Group", (group) => group.schedules, { onDelete: "CASCADE" })
   @JoinColumn({ name: "group_id" })
   group: Group;
 
@@ -78,7 +78,7 @@ export class Schedule {
   @OneToMany(() => Reminder, (reminder) => reminder.schedule, { cascade: true })
   reminders: Reminder[];
 
-  @OneToMany(() => ScheduleAssignment, (assignment) => assignment.schedule, { cascade: true })
+  @OneToMany("ScheduleAssignment", (assignment) => assignment.schedule, { cascade: true })
   assignments: ScheduleAssignment[];
 
   @OneToMany(() => ShareLog, (shareLog) => shareLog.schedule)

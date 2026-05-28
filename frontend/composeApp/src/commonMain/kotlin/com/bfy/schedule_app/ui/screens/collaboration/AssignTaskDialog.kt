@@ -144,15 +144,16 @@ fun AssignTaskDialog(
 
     fun formatDate(date: LocalDate): String {
         val dayOfWeek = when(date.dayOfWeek) {
-            DayOfWeek.MONDAY -> "T2"
-            DayOfWeek.TUESDAY -> "T3"
-            DayOfWeek.WEDNESDAY -> "T4"
-            DayOfWeek.THURSDAY -> "T5"
-            DayOfWeek.FRIDAY -> "T6"
-            DayOfWeek.SATURDAY -> "T7"
-            DayOfWeek.SUNDAY -> "CN"
+            DayOfWeek.MONDAY -> "Mon"
+            DayOfWeek.TUESDAY -> "Tue"
+            DayOfWeek.WEDNESDAY -> "Wed"
+            DayOfWeek.THURSDAY -> "Thu"
+            DayOfWeek.FRIDAY -> "Fri"
+            DayOfWeek.SATURDAY -> "Sat"
+            DayOfWeek.SUNDAY -> "Sun"
         }
-        return "$dayOfWeek, ${date.dayOfMonth} Thg ${date.monthNumber}, ${date.year}"
+        val monthStr = date.month.name.take(3).lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        return "$dayOfWeek, ${date.dayOfMonth} $monthStr, ${date.year}"
     }
 
     Dialog(
@@ -191,7 +192,7 @@ fun AssignTaskDialog(
                 ) {
                     // Type Selection
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("ANNOUNCEMENT" to "Announcement", "TASK" to "Task", "EVENT" to "Event").forEach { (key, label) ->
+                        listOf("ANNOUNCEMENT" to "Notification", "TASK" to "Task", "EVENT" to "Event").forEach { (key, label) ->
                             Box(
                                 modifier = Modifier
                                     .weight(1f)

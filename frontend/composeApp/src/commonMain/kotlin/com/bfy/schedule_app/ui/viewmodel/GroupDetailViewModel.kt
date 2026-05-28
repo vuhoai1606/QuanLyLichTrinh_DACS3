@@ -115,6 +115,17 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
         }
     }
 
+    fun deleteSchedule(groupId: String, scheduleId: String) {
+        viewModelScope.launch {
+            try {
+                repository.deleteSchedule(scheduleId)
+                loadTasks(groupId)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
     fun removeMember(groupId: String, userId: String) {
         viewModelScope.launch {
             try {

@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
-import { Schedule } from "./Schedule";
+import type { User } from "./User";
+import type { Schedule } from "./Schedule";
 
 @Entity("task_collaborators")
 export class TaskCollaborator {
@@ -16,11 +16,11 @@ export class TaskCollaborator {
   @CreateDateColumn({ type: "timestamp" })
   added_at: Date;
 
-  @ManyToOne(() => Schedule, (schedule) => schedule.collaborators, { onDelete: "CASCADE" })
+  @ManyToOne("Schedule", (schedule) => schedule.collaborators, { onDelete: "CASCADE" })
   @JoinColumn({ name: "schedule_id" })
   schedule: Schedule;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @ManyToOne("User", { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 }

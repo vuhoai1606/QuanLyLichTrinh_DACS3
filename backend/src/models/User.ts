@@ -1,8 +1,8 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, OneToMany } from "typeorm";
 import { UserSettings } from "./UserSettings";
 import { Category } from "./Category";
-import { Schedule } from "./Schedule";
-import { Group } from "./Group";
+import type { Schedule } from "./Schedule";
+import type { Group } from "./Group";
 import { GroupMember } from "./GroupMember";
 import { FocusSession } from "./FocusSession";
 import { Notification } from "./Notification";
@@ -57,19 +57,19 @@ export class User {
   @UpdateDateColumn({ type: "timestamp" })
   updated_at: Date;
 
-  @OneToOne(() => UserSettings, (settings) => settings.user, { cascade: true })
+  @OneToOne("User"Settings, (settings) => settings.user, { cascade: true })
   settings: UserSettings;
 
   @OneToMany(() => Category, (category) => category.user, { cascade: true })
   categories: Category[];
 
-  @OneToMany(() => Schedule, (schedule) => schedule.creator, { cascade: true })
+  @OneToMany("Schedule", (schedule) => schedule.creator, { cascade: true })
   schedules: Schedule[];
 
-  @OneToMany(() => Group, (group) => group.leader, { cascade: true })
+  @OneToMany("Group", (group) => group.leader, { cascade: true })
   groups: Group[];
 
-  @OneToMany(() => GroupMember, (member) => member.user, { cascade: true })
+  @OneToMany("Group"Member, (member) => member.user, { cascade: true })
   groupMembers: GroupMember[];
 
   @OneToMany(() => FocusSession, (session) => session.user, { cascade: true })
@@ -78,7 +78,7 @@ export class User {
   @OneToMany(() => Notification, (notification) => notification.user, { cascade: true })
   notifications: Notification[];
 
-  @OneToMany(() => UserBadge, (userBadge) => userBadge.user, { cascade: true })
+  @OneToMany("User"Badge, (userBadge) => userBadge.user, { cascade: true })
   badges: UserBadge[];
 
   @OneToMany(() => FCMToken, (token) => token.user, { cascade: true })

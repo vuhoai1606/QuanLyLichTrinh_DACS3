@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
+import type { User } from "./User";
 
 @Entity("refresh_tokens")
 export class RefreshToken {
@@ -9,7 +9,7 @@ export class RefreshToken {
   @Column({ name: "user_id" })
   userId: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne("User")
   @JoinColumn({ name: "user_id" })
   user: User;
 
@@ -25,3 +25,4 @@ export class RefreshToken {
   @CreateDateColumn()
   created_at: Date;
 }
+

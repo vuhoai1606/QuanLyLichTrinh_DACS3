@@ -133,6 +133,38 @@ export class ScheduleService {
       await assignmentRepository.save(assignmentEntities);
     }
 
+    // Notify group members if it's an ANNOUNCEMENT in a group
+    if (data.type === "ANNOUNCEMENT" && data.group_id) {
+      try {
+        const groupMemberRepository = AppDataSource.getRepository("GroupMember");
+        const notificationRepository = AppDataSource.getRepository("Notification");
+
+        const members = await groupMemberRepository.find({
+          where: { group_id: data.group_id },
+          relations: ["user"]
+        });
+
+        const notifications = members
+          .filter(m => m.user_id !== data.creator_id) // Don't notify the creator
+          .map(m => notificationRepository.create({
+            id: generateUUID(),
+            user_id: m.user_id,
+            sender_id: data.creator_id,
+            type: "GROUP_TASK",
+            title: `New Announcement in Group`,
+            message: `An announcement "${savedSchedule.title}" was created.`,
+            related_id: savedSchedule.id,
+            ia_read: false
+          }));
+
+        if (notifications.length > 0) {
+          await notificationRepository.save(notifications);
+        }
+      } catch (err) {
+        console.error("Failed to send group announcement notifications:", err);
+      }
+    }
+
     return this.getScheduleById(savedSchedule.id);
   }
 
@@ -140,14 +172,14 @@ export class ScheduleService {
     try {
       const scheduleRepository = AppDataSource.getRepository("Schedule");
       const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
-      const { In } = require("typeorm");
+      const { In, IsNull } = require("typeorm");
 
       const assignments = await assignmentRepository.find({ where: { assignee_id: userId } });
       const assignedScheduleIds = assignments.map(a => a.schedule_id);
 
       const whereClause = assignedScheduleIds.length > 0 
-        ? [ { creator_id: userId }, { id: In(assignedScheduleIds) } ]
-        : { creator_id: userId };
+        ? [ { creator_id: userId, group_id: IsNull() }, { id: In(assignedScheduleIds), group_id: IsNull() } ]
+        : { creator_id: userId, group_id: IsNull() };
 
       const [schedules, total] = await scheduleRepository.findAndCount({
         where: whereClause,
@@ -183,14 +215,14 @@ export class ScheduleService {
   async getTimelineForUser(userId: string, startDate: Date, endDate: Date): Promise<any[]> {
     const scheduleRepository = AppDataSource.getRepository("Schedule");
     const assignmentRepository = AppDataSource.getRepository("ScheduleAssignment");
-    const { In } = require("typeorm");
+    const { In, IsNull } = require("typeorm");
 
     const assignments = await assignmentRepository.find({ where: { assignee_id: userId } });
     const assignedScheduleIds = assignments.map(a => a.schedule_id);
 
     const whereClause = assignedScheduleIds.length > 0 
-      ? [ { creator_id: userId }, { id: In(assignedScheduleIds) } ]
-      : { creator_id: userId };
+      ? [ { creator_id: userId, group_id: IsNull() }, { id: In(assignedScheduleIds), group_id: IsNull() } ]
+      : { creator_id: userId, group_id: IsNull() };
 
     const schedules = await scheduleRepository.find({
       where: whereClause,
@@ -361,7 +393,7 @@ export class ScheduleService {
   async filterSchedules(userId: string, filters: any): Promise<any> {
     const scheduleRepository = AppDataSource.getRepository("Schedule");
 
-    let query: any = { creator_id: userId };
+    let query: any = { creator_id: userId, group_id: require("typeorm").IsNull() };
 
     if (filters.type) query.type = filters.type;
     if (filters.status) query.status = filters.status;

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
+import type { User } from "./User";
 
 @Entity("notifications")
 export class Notification {
@@ -30,11 +30,11 @@ export class Notification {
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @ManyToOne("User", { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
+  @ManyToOne("User", { nullable: true, onDelete: "SET NULL" })
   @JoinColumn({ name: "sender_id" })
   sender: User;
 }

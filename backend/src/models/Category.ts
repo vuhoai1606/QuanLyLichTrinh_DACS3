@@ -1,27 +1,27 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import type { User } from "./User";
 
 @Entity("categories")
 export class Category {
   @PrimaryColumn("uuid")
   id: string;
 
-  @Column("uuid")
+  @Column({ type: "uuid" })
   user_id: string;
 
-  @Column({ type: "varchar", length: 50 })
+  @Column({ type: "varchar" })
   name: string;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", length: 7 })
   hex_color: string;
 
-  @Column({ type: "timestamp" })
+  @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
 
-  @Column({ type: "timestamp" })
+  @UpdateDateColumn({ type: "timestamp" })
   updated_at: Date;
 
-  @ManyToOne(() => User, (user) => user.categories, { onDelete: "CASCADE" })
+  @ManyToOne("User", (user: any) => user.categories, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 }

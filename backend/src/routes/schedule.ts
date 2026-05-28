@@ -84,13 +84,19 @@ export const scheduleRoutes = new Elysia({ prefix: "/schedule" })
   .get("/:id", async ({ params }: { params: any }) => scheduleController.getScheduleById(params.id), { tags: ["Schedule"] })
   .delete("/:id", async (ctx: AuthContext & { params: any }) => {
     const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
-    const payload = verifyToken(token!);
+    if (!token) return errorResponse(401, "Missing authorization token", "MISSING_TOKEN");
+    const payload = verifyToken(token);
+    if (!payload) return errorResponse(401, "Invalid or expired token", "INVALID_TOKEN");
     const userId = (payload as any).userId;
+    if (!userId) return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
     return scheduleController.deleteSchedule(ctx.params.id, userId);
   }, { tags: ["Schedule"] })
   .put("/:id", async (ctx: AuthContext & { params: any; body: any }) => {
     const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
-    const payload = verifyToken(token!);
+    if (!token) return errorResponse(401, "Missing authorization token", "MISSING_TOKEN");
+    const payload = verifyToken(token);
+    if (!payload) return errorResponse(401, "Invalid or expired token", "INVALID_TOKEN");
     const userId = (payload as any).userId;
+    if (!userId) return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
     return scheduleController.updateSchedule(ctx.params.id, userId, ctx.body);
   }, { tags: ["Schedule"] });

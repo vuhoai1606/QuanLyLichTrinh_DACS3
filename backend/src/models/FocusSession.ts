@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from "typeorm";
-import { User } from "./User";
+import type { User } from "./User";
 
 @Entity("focus_sessions")
 export class FocusSession {
@@ -21,7 +21,7 @@ export class FocusSession {
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
 
-  @ManyToOne(() => User, (user) => user.focusSessions, { onDelete: "CASCADE" })
+  @ManyToOne("User", (user) => user.focusSessions, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 }

@@ -65,7 +65,7 @@ fun CreateGroupDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Tạo nhóm mới", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text(Localization.get("create_new_group") ?: "Create New Group", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     IconButton(onClick = onDismissRequest) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = TextPrimary)
                     }
@@ -76,7 +76,7 @@ fun CreateGroupDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Tên nhóm") },
+                    label = { Text(Localization.get("group_name") ?: "Group Name") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = TextPrimary,
@@ -88,7 +88,7 @@ fun CreateGroupDialog(
 
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Thêm thành viên", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text(Localization.get("add_members") ?: "Add members", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Search Box
@@ -98,7 +98,7 @@ fun CreateGroupDialog(
                         searchQuery = it 
                         viewModel.searchUsers(it)
                     },
-                    label = { Text("Tìm theo tên hoặc email") },
+                    label = { Text(Localization.get("search_by_name_email") ?: "Search by name or email") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = TextPrimary,
@@ -187,7 +187,7 @@ fun CreateGroupDialog(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            "Thành viên", 
+                                            Localization.get("member") ?: "Member",
                                             color = if (role == "MEMBER") Color(0xFF003731) else TextSecondary, 
                                             fontSize = 12.sp,
                                             fontWeight = if (role == "MEMBER") FontWeight.Bold else FontWeight.Normal
@@ -203,7 +203,7 @@ fun CreateGroupDialog(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            "Phó nhóm", 
+                                            Localization.get("deputy") ?: "Deputy",
                                             color = if (role == "DEPUTY") Color(0xFF003731) else TextSecondary, 
                                             fontSize = 12.sp,
                                             fontWeight = if (role == "DEPUTY") FontWeight.Bold else FontWeight.Normal
@@ -238,7 +238,7 @@ fun CreateGroupDialog(
                     if (uiState.isLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
-                        Text("Tạo Nhóm", color = Color(0xFF003731), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(Localization.get("create_group") ?: "Create Group", color = Color(0xFF003731), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from "typeorm";
-import { Group } from "./Group";
-import { User } from "./User";
+import type { Group } from "./Group";
+import type { User } from "./User";
 
 @Entity("group_members")
 export class GroupMember {
@@ -16,11 +16,11 @@ export class GroupMember {
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
 
-  @ManyToOne(() => Group, (group) => group.members, { onDelete: "CASCADE" })
+  @ManyToOne("Group", (group: any) => group.members, { onDelete: "CASCADE" })
   @JoinColumn({ name: "group_id" })
   group: Group;
 
-  @ManyToOne(() => User, (user) => user.groupMembers, { onDelete: "CASCADE" })
+  @ManyToOne("User", (user: any) => user.groupMembers, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 }
