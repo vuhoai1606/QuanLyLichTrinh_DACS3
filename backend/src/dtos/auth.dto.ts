@@ -74,7 +74,9 @@ export function validateUpdateProfile(data: any): { valid: boolean; errors: stri
 
   if (data.avatar_url !== undefined) {
     try {
-      new URL(data.avatar_url);
+      if (!data.avatar_url.startsWith("data:image")) {
+        new URL(data.avatar_url);
+      }
     } catch {
       errors.push("Invalid avatar URL");
     }

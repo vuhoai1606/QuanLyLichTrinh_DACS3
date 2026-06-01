@@ -37,7 +37,7 @@ import { verifyToken } from "@utils/jwt";
 /**
  * Initialize and configure Elysia server
  */
-const app = new Elysia()
+const app = new Elysia({ bodyLimit: 50 * 1024 * 1024 })
   // .use(websocket()) // Temporarily disabled due to compatibility issues
   .use(rateLimit({
     max: 100,

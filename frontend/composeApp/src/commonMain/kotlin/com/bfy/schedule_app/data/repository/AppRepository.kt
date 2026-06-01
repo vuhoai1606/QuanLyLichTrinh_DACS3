@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class AppRepository {
-    private val client = ApiClient.client
+    private val client: io.ktor.client.HttpClient get() = ApiClient.client
 
     suspend fun getCurrentUser(): UserDto {
         val response: ApiResponse<UserDto> = client.get(ApiClient.getUrl("/users/me")) {

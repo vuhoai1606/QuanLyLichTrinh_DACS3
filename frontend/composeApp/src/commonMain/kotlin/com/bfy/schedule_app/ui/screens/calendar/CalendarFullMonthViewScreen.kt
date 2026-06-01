@@ -97,17 +97,7 @@ fun MonthGrid(selectedDate: LocalDate, schedules: List<com.bfy.schedule_app.data
                                 )
                                 // Indicator dots in local timezone
                                 val hasSchedules = schedules.any { schedule ->
-                                    val itemDate = try {
-                                        val startStr = schedule.start_time ?: schedule.deadline
-                                        if (startStr != null) {
-                                            Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault()).date
-                                        } else {
-                                            null
-                                        }
-                                    } catch (e: Exception) {
-                                        null
-                                    }
-                                    itemDate == gridDate
+                                    com.bfy.schedule_app.utils.ScheduleUtils.matchesDate(schedule, gridDate)
                                 }
                                 if (hasSchedules) {
                                     Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(if (isSelected) TextDark else Color(0xFFAD7BFF)))
@@ -130,17 +120,7 @@ fun AgendaSection(
     onItemClick: (com.bfy.schedule_app.data.remote.model.ScheduleDto) -> Unit
 ) {
     val daySchedules = schedules.filter { schedule ->
-        val itemDate = try {
-            val startStr = schedule.start_time ?: schedule.deadline
-            if (startStr != null) {
-                Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault()).date
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
-        }
-        itemDate == selectedDate
+        com.bfy.schedule_app.utils.ScheduleUtils.matchesDate(schedule, selectedDate)
     }
 
     Column {

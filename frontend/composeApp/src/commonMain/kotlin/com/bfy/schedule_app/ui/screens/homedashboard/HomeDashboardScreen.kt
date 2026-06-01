@@ -45,6 +45,8 @@ import com.bfy.schedule_app.utils.Localization
 import com.bfy.schedule_app.utils.SettingsManager
 import com.bfy.schedule_app.data.repository.AppRepository
 import kotlinx.datetime.*
+import com.bfy.schedule_app.utils.ScheduleUtils
+import androidx.compose.ui.platform.LocalDensity
 
 enum class DashboardTab {
     HOME, CALENDAR, FOCUS, COLLAB, PROFILE, LEADERBOARD
@@ -439,11 +441,7 @@ fun HomeContent(
             
             val filteredSchedules = uiState.schedules.filter { schedule ->
                 val isDone = schedule.status == "DONE"
-                val isOverdue = !isDone && schedule.deadline?.let {
-                    try {
-                        Instant.parse(it) < nowInstant
-                    } catch (e: Exception) { false }
-                } ?: false
+                val isOverdue = ScheduleUtils.isOverdue(schedule, nowInstant)
 
                 if (isOverdue) {
                     true
@@ -476,27 +474,11 @@ fun HomeContent(
                     isToday
                 }
             }.sortedWith(compareBy<ScheduleDto> { schedule ->
-                val isDone = schedule.status == "DONE"
-                val isOverdue = !isDone && schedule.deadline?.let {
-                    try {
-                        Instant.parse(it) < nowInstant
-                    } catch (e: Exception) { false }
-                } ?: false
+                val isOverdue = ScheduleUtils.isOverdue(schedule, nowInstant)
                 !isOverdue
             }.thenComparator { a, b ->
-                val aIsDone = a.status == "DONE"
-                val aIsOverdue = !aIsDone && a.deadline?.let {
-                    try {
-                        Instant.parse(it) < nowInstant
-                    } catch (e: Exception) { false }
-                } ?: false
-
-                val bIsDone = b.status == "DONE"
-                val bIsOverdue = !bIsDone && b.deadline?.let {
-                    try {
-                        Instant.parse(it) < nowInstant
-                    } catch (e: Exception) { false }
-                } ?: false
+                val aIsOverdue = ScheduleUtils.isOverdue(a, nowInstant)
+                val bIsOverdue = ScheduleUtils.isOverdue(b, nowInstant)
 
                 if (aIsOverdue && bIsOverdue) {
                     val aDeadline = a.deadline ?: ""
@@ -742,9 +724,10 @@ fun SwipeToRevealContainer(
     onDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val density = LocalDensity.current
+    val maxSwipe = remember(density) { with(density) { -72.dp.toPx() } }
+    val swipeLimit = remember(density) { with(density) { -110.dp.toPx() } }
     var offsetX by remember { mutableStateOf(0f) }
-    val maxSwipe = -100f // 100px (around 50dp) is perfect to fit 1 icon
-    val swipeLimit = -150f
     
     Box(
         modifier = Modifier
@@ -907,6 +890,7 @@ fun TimelineCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1E2023))
+                .clickable { onClick() }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -943,15 +927,7 @@ fun TimelineCard(
         }
     } else {
         val isDone = schedule.status == "DONE"
-        
-        // Overdue logic
-        val isOverdue = !isDone && schedule.deadline?.let {
-            try {
-                val deadline = Instant.parse(it).toLocalDateTime(TimeZone.currentSystemDefault())
-                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-                deadline < now
-            } catch (e: Exception) { false }
-        } ?: false
+        val isOverdue = ScheduleUtils.isOverdue(schedule)
 
         val accentColor = when {
             isDone -> Color(0xFF59DBC7)
@@ -978,6 +954,7 @@ fun TimelineCard(
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1E2023))
                 .border(1.dp, accentColor.copy(alpha = if (isDone) 0.3f else 0.5f), RoundedCornerShape(12.dp))
+                .clickable { onClick() }
                 .alpha(if (isDone) 0.6f else 1f)
                 .padding(16.dp)
         ) {

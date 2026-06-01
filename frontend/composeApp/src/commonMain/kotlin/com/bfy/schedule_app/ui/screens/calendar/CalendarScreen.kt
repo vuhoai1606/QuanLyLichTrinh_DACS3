@@ -101,7 +101,18 @@ fun CalendarScreen() {
                     fontWeight = FontWeight.Bold
                 )
 
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = Localization.get("today") ?: "Today",
+                        color = PrimaryColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { viewModel.goToToday() }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Icon(
                         Icons.Default.KeyboardArrowLeft, 
                         contentDescription = "Previous", 

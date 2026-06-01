@@ -62,7 +62,11 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                     is_all_day = isAllDay,
                     is_recurring = recurrence != null && recurrence != "Never",
                     recurrence_type = when(recurrence) {
+                        "Daily" -> "DAILY"
+                        "Weekly" -> "WEEKLY"
                         "Monthly" -> "MONTHLY"
+                        "Mon-Fri" -> "MON_FRI"
+                        "Yearly" -> "YEARLY"
                         else -> null
                     },
                     reminders = reminders.map {
@@ -109,6 +113,8 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                         "Daily" -> "DAILY"
                         "Weekly" -> "WEEKLY"
                         "Monthly" -> "MONTHLY"
+                        "Mon-Fri" -> "MON_FRI"
+                        "Yearly" -> "YEARLY"
                         else -> null
                     }
                 } else null

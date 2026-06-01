@@ -12,3 +12,13 @@ actual fun getPlatform(): Platform = JsPlatform()
 actual fun BackHandlerWrapper(enabled: Boolean, onBack: () -> Unit) {
     // No-op for JS
 }
+
+@Composable
+actual fun rememberImagePicker(onImagePicked: (String) -> Unit): () -> Unit {
+    return {}
+}
+
+@Composable
+actual fun rememberBitmapFromUrlOrBase64(source: String?): androidx.compose.ui.graphics.ImageBitmap? {
+    return null
+}

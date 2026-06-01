@@ -58,6 +58,7 @@ import androidx.compose.runtime.LaunchedEffect
 import com.bfy.schedule_app.utils.Localization
 import kotlinx.datetime.*
 import kotlinx.coroutines.launch
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 
 private data class CategoryOption(val name: String, val color: Color)
@@ -163,6 +164,25 @@ fun CreateNewItemScreen(
     var countdownEnabled by remember { mutableStateOf(false) }
 
 
+    val noBounceNestedScrollConnection = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: androidx.compose.ui.geometry.Offset,
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+            ): androidx.compose.ui.geometry.Offset {
+                return available
+            }
+
+            override suspend fun onPostFling(
+                consumed: androidx.compose.ui.unit.Velocity,
+                available: androidx.compose.ui.unit.Velocity
+            ): androidx.compose.ui.unit.Velocity {
+                return available
+            }
+        }
+    }
+
     var titleError by remember { mutableStateOf<String?>(null) }
     var taskTimeError by remember { mutableStateOf<String?>(null) }
     var eventTimeError by remember { mutableStateOf<String?>(null) }
@@ -236,13 +256,25 @@ fun CreateNewItemScreen(
             countdownEnabled = initialSchedule.is_countdown_enabled == true
             
             // Repeat/Recurrence
-            initialSchedule.rrule?.let { rrule ->
-                repeatIndex = when {
-                    rrule.contains("FREQ=DAILY") -> 1
-                    rrule.contains("FREQ=WEEKLY") -> 3
-                    rrule.contains("FREQ=MONTHLY") -> 4
+            val recurrenceType = initialSchedule.recurrence_type ?: initialSchedule.rrule?.let { rrule ->
+                when {
+                    rrule.contains("FREQ=DAILY") -> "DAILY"
+                    rrule.contains("FREQ=WEEKLY") -> "WEEKLY"
+                    rrule.contains("FREQ=MONTHLY") -> "MONTHLY"
+                    else -> null
+                }
+            }
+            if (recurrenceType != null) {
+                repeatIndex = when(recurrenceType.uppercase()) {
+                    "DAILY" -> 1
+                    "MON_FRI" -> 2
+                    "WEEKLY" -> 3
+                    "MONTHLY" -> 4
+                    "YEARLY" -> 5
                     else -> 0
                 }
+            } else {
+                repeatIndex = 0
             }
         }
     }
@@ -367,6 +399,7 @@ fun CreateNewItemScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .nestedScroll(noBounceNestedScrollConnection)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -829,11 +862,13 @@ fun CreateNewItemScreen(
                                 } else null
 
                                 val recurrenceStr = when(repeatIndex) {
-                                    1 -> "Daily"
-                                    3 -> "Weekly"
-                                    4 -> "Monthly"
-                                    else -> "Never"
-                                }
+                                     1 -> "Daily"
+                                     2 -> "Mon-Fri"
+                                     3 -> "Weekly"
+                                     4 -> "Monthly"
+                                     5 -> "Yearly"
+                                     else -> "Never"
+                                 }
                                 val catColor = categories[selectedCategoryIndex].color
                                 val hexColor = "#" + catColor.value.toString(16).substring(2, 8).uppercase()
 

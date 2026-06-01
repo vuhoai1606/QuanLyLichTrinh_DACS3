@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import kotlinx.datetime.*
+import com.bfy.schedule_app.utils.Localization
 
 @Composable
 fun CalendarWeekViewScreen(
@@ -104,50 +105,105 @@ fun WeekTimeGrid(
     val monday = selectedDate.minus(dayOfWeek - 1, DateTimeUnit.DAY)
     val sunday = monday.plus(6, DateTimeUnit.DAY)
 
-    Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Column {
-            for (hour in 0..23) {
-                Row(modifier = Modifier.fillMaxWidth().height(60.dp)) {
-                    Box(modifier = Modifier.width(60.dp).padding(end = 8.dp), contentAlignment = Alignment.TopEnd) {
-                        Text("$hour:00", color = TextSecondary, fontSize = 12.sp)
+    val days = (0..6).map { monday.plus(it, DateTimeUnit.DAY) }
+    val allDayEvents = uiState.schedules.filter { it.is_all_day && com.bfy.schedule_app.utils.ScheduleUtils.matchesDate(it, selectedDate) }
+    val hasAnyAllDay = allDayEvents.isNotEmpty()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (hasAnyAllDay) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 60.dp, end = 16.dp, bottom = 8.dp)
+                    .background(Color(0xFF1E2023))
+                    .border(1.dp, Color(0xFF3C4946), RoundedCornerShape(8.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = Localization.get("all_day") ?: "All Day",
+                    color = PrimaryColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                val dayName = Localization.getDayOfWeek(selectedDate.dayOfWeek)
+                allDayEvents.forEach { schedule ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF))
+                            .clickable { onItemClick(schedule) }
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = schedule.title,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "${selectedDate.dayOfMonth} (${dayName.take(3)})",
+                            color = TextSecondary,
+                            fontSize = 10.sp
+                        )
                     }
-                    Box(modifier = Modifier.weight(1f).height(1.dp).background(Color(0xFF282A2D)))
                 }
             }
-            Spacer(modifier = Modifier.height(100.dp))
         }
-        
-        // Display events from backend for the entire week
-        uiState.schedules.forEach { schedule ->
-            val startTimeStr = schedule.start_time ?: schedule.deadline
-            if (startTimeStr != null) {
-                var localDateTime: kotlinx.datetime.LocalDateTime? = null
-                try {
-                    localDateTime = Instant.parse(startTimeStr).toLocalDateTime(TimeZone.currentSystemDefault())
-                } catch (e: Exception) {
-                    // Ignore parsing error
+
+        Box(modifier = Modifier.fillMaxSize().weight(1f).verticalScroll(rememberScrollState())) {
+            Column {
+                for (hour in 0..23) {
+                    Row(modifier = Modifier.fillMaxWidth().height(60.dp)) {
+                        Box(modifier = Modifier.width(60.dp).padding(end = 8.dp), contentAlignment = Alignment.TopEnd) {
+                            Text("$hour:00", color = TextSecondary, fontSize = 12.sp)
+                        }
+                        Box(modifier = Modifier.weight(1f).height(1.dp).background(Color(0xFF282A2D)))
+                    }
                 }
- 
-                if (localDateTime != null) {
-                    val eventDate = localDateTime.date
-                    val localHour = localDateTime.hour
-                    
-                    if (eventDate >= monday && eventDate <= sunday) {
-                        val daysBetween = eventDate.toEpochDays() - monday.toEpochDays()
+                Spacer(modifier = Modifier.height(100.dp))
+            }
+            
+            // Plot timed events on grid using ScheduleUtils.matchesDate
+            days.forEachIndexed { dayIndex, gridDate ->
+                val daySchedules = uiState.schedules.filter { !it.is_all_day && com.bfy.schedule_app.utils.ScheduleUtils.matchesDate(it, gridDate) }
+                
+                daySchedules.forEach { schedule ->
+                    val startTimeStr = schedule.start_time ?: schedule.deadline
+                    if (startTimeStr != null) {
+                        var localDateTime: kotlinx.datetime.LocalDateTime? = null
+                        try {
+                            localDateTime = Instant.parse(startTimeStr).toLocalDateTime(TimeZone.currentSystemDefault())
+                        } catch (e: Exception) {}
                         
-                        if (daysBetween in 0..6) {
+                        if (localDateTime != null) {
+                            val localHour = localDateTime.hour
+                            val localMinute = localDateTime.minute
+                            val topOffset = localHour * 60.0 + (localMinute / 60.0) * 60.0
+
+                            val durationMin = try {
+                                val startInst = Instant.parse(schedule.start_time ?: schedule.deadline!!)
+                                val endInst = Instant.parse(schedule.end_time ?: schedule.deadline!!)
+                                (endInst.toEpochMilliseconds() - startInst.toEpochMilliseconds()) / 60000
+                            } catch (e: Exception) {
+                                60L
+                            }
+                            val finalDuration = if (durationMin <= 0) 60L else durationMin
+                            val eventHeight = maxOf((finalDuration / 60.0) * 60.0, 30.0)
+                            
                             if (localHour in 0..23) {
-                                val topOffset = localHour * 60
-                                
                                 Box(
                                     modifier = Modifier
                                         .padding(start = 60.dp, end = 16.dp)
                                         .offset(
-                                            x = (daysBetween * ((400 - 60 - 16) / 7)).dp,
+                                            x = (dayIndex * ((400 - 60 - 16) / 7)).dp,
                                             y = topOffset.dp
                                         )
                                         .fillMaxWidth(0.12f)
-                                        .height(60.dp)
+                                        .height(eventHeight.dp)
                                         .clip(RoundedCornerShape(4.dp))
                                         .background(if (schedule.type == "EVENT") Color(0x330F4490) else Color(0x33AD7BFF))
                                         .border(1.dp, if (schedule.type == "EVENT") Color(0xFF0F4490) else Color(0xFFAD7BFF), RoundedCornerShape(4.dp))

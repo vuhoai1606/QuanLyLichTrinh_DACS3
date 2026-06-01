@@ -183,6 +183,7 @@ export class ScheduleService {
 
       const [schedules, total] = await scheduleRepository.findAndCount({
         where: whereClause,
+        relations: ["category", "reminders"],
         order: { created_at: "DESC" },
         skip: offset,
         take: limit,
@@ -201,6 +202,14 @@ export class ScheduleService {
           deadline: s.deadline,
           creator_id: s.creator_id,
           created_at: s.created_at,
+          is_all_day: s.is_all_day,
+          rrule: s.rrule,
+          is_recurring: s.is_recurring,
+          recurrence_type: s.recurrence_type,
+          is_countdown_enabled: s.is_countdown_enabled,
+          category_name: s.category?.name ?? null,
+          category_color: s.category?.hex_color ?? null,
+          reminders: s.reminders ?? [],
         })),
         total,
         limit,
@@ -271,6 +280,9 @@ export class ScheduleService {
       })),
       is_all_day: schedule.is_all_day,
       rrule: schedule.rrule,
+      is_recurring: schedule.is_recurring,
+      recurrence_type: schedule.recurrence_type,
+      is_countdown_enabled: schedule.is_countdown_enabled,
       created_at: schedule.created_at,
     };
   }
@@ -284,7 +296,11 @@ export class ScheduleService {
       throw new AppError(404, "Schedule not found", "SCHEDULE_NOT_FOUND");
     }
 
-    if (schedule.creator_id !== userId) {
+    const isAssignee = await AppDataSource.getRepository("ScheduleAssignment").findOne({
+      where: { schedule_id: scheduleId, assignee_id: userId }
+    });
+
+    if (schedule.creator_id !== userId && !isAssignee) {
       throw new AppError(403, "Unauthorized to update this schedule", "UNAUTHORIZED");
     }
 
@@ -335,7 +351,8 @@ export class ScheduleService {
       }
     }
 
-    return scheduleRepository.save(schedule);
+    await scheduleRepository.save(schedule);
+    return this.getScheduleById(scheduleId);
   }
 
   async deleteSchedule(scheduleId: string, userId: string): Promise<void> {

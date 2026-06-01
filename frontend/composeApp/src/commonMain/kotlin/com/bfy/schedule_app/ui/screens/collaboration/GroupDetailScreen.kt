@@ -45,6 +45,9 @@ fun GroupDetailScreen(
         viewModel.loadTasks(groupId)
     }
 
+    val myRole = uiState.members.find { it.id == uiState.currentUser?.id }?.role ?: "MEMBER"
+    val canAssign = myRole == "LEADER" || myRole == "DEPUTY"
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -52,7 +55,7 @@ fun GroupDetailScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 80.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(top = 96.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item {
@@ -62,7 +65,7 @@ fun GroupDetailScreen(
             item { Spacer(modifier = Modifier.height(24.dp)) }
 
             item {
-                SharedTasksHeader(onAddClick = { type -> addTaskType = type; showAddTaskDialog = true })
+                SharedTasksHeader(canAssign = canAssign, onAddClick = { type -> addTaskType = type; showAddTaskDialog = true })
             }
 
             item { Spacer(modifier = Modifier.height(12.dp)) }
@@ -81,7 +84,18 @@ fun GroupDetailScreen(
                 GroupTaskCard(
                     status = when(task.type) {
                         "ANNOUNCEMENT" -> GroupTaskStatus.ANNOUNCEMENT
-                        "EVENT" -> GroupTaskStatus.EVENT
+                        "EVENT" -> {
+                            val now = Clock.System.now()
+                            val endTimeInstant = task.end_time?.let {
+                                try { Instant.parse(if (!it.contains("T")) "${it}T00:00:00Z" else if (!it.endsWith("Z") && !it.contains("+")) "${it}Z" else it) } catch (e: Exception) { null }
+                            }
+                            val isOverdue = endTimeInstant != null && endTimeInstant < now
+                            when {
+                                task.status == "DONE" -> GroupTaskStatus.DONE
+                                isOverdue -> GroupTaskStatus.OVERDUE
+                                else -> GroupTaskStatus.EVENT
+                            }
+                        }
                         else -> {
                             val now = Clock.System.now()
                             val deadlineInstant = task.deadline?.let {
@@ -155,8 +169,8 @@ private fun TopBar(
         elevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
-            .padding(top = 0.dp)
+            .height(88.dp)
+            .padding(top = 24.dp)
     ) {
         Row(
             modifier = Modifier
@@ -323,7 +337,7 @@ private fun ActiveMemberAvatar(color: Color, initials: String, active: Boolean, 
 }
 
 @Composable
-private fun SharedTasksHeader(onAddClick: (String) -> Unit) {
+private fun SharedTasksHeader(canAssign: Boolean, onAddClick: (String) -> Unit) {
     var menuExpanded by remember { mutableStateOf(false) }
 
     Row(
@@ -337,32 +351,34 @@ private fun SharedTasksHeader(onAddClick: (String) -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold
         )
-        Box {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF59DBC7))
-                    .clickable { menuExpanded = true }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", tint = Color(0xFF003731), modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Assign Task", color = Color(0xFF003731), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.background(Color(0xFF282A2D))
-            ) {
-                DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("ANNOUNCEMENT") }) {
-                    Text("Notification", color = Color(0xFFE2E2E6))
+        if (canAssign) {
+            Box {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF59DBC7))
+                        .clickable { menuExpanded = true }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add", tint = Color(0xFF003731), modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Assign Task", color = Color(0xFF003731), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
-                DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("TASK") }) {
-                    Text("Công việc", color = Color(0xFFE2E2E6))
-                }
-                DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("EVENT") }) {
-                    Text("Sự kiện", color = Color(0xFFE2E2E6))
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier.background(Color(0xFF282A2D))
+                ) {
+                    DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("ANNOUNCEMENT") }) {
+                        Text("Notification", color = Color(0xFFE2E2E6))
+                    }
+                    DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("TASK") }) {
+                        Text("Công việc", color = Color(0xFFE2E2E6))
+                    }
+                    DropdownMenuItem(onClick = { menuExpanded = false; onAddClick("EVENT") }) {
+                        Text("Sự kiện", color = Color(0xFFE2E2E6))
+                    }
                 }
             }
         }

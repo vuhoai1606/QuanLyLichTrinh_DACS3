@@ -69,6 +69,9 @@ class UserService {
           "total_exp",
           "current_rank",
           "is_active",
+          "gender",
+          "dob",
+          "timezone",
         ],
       });
 
@@ -225,7 +228,7 @@ class UserService {
     }
   }
 
-  async updateProfile(userId: string, data: { full_name?: string; bio?: string; avatar_url?: string }) {
+  async updateProfile(userId: string, data: { full_name?: string; bio?: string; avatar_url?: string; gender?: string; dob?: string }) {
     try {
       const userRepo = AppDataSource.getRepository("User");
       const user = await userRepo.findOne({ where: { id: userId } });
@@ -235,6 +238,8 @@ class UserService {
       if (data.full_name !== undefined) user.full_name = data.full_name;
       if (data.bio !== undefined) user.bio = data.bio;
       if (data.avatar_url !== undefined) user.avatar_url = data.avatar_url;
+      if (data.gender !== undefined) user.gender = data.gender;
+      if (data.dob !== undefined) user.dob = data.dob;
 
       const savedUser = await userRepo.save(user);
       

@@ -125,6 +125,8 @@ export const ScheduleSchema = new EntitySchema({
     deadline: { type: "timestamp", nullable: true },
     is_all_day: { type: "boolean", default: false },
     rrule: { type: "text", nullable: true },
+    is_recurring: { type: "boolean", default: false },
+    recurrence_type: { type: "varchar", nullable: true },
     is_countdown_enabled: { type: "boolean", default: false },
     created_at: { type: "timestamp", createDate: true },
     updated_at: { type: "timestamp", updateDate: true },

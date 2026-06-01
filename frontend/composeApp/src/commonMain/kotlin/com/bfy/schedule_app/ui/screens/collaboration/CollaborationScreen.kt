@@ -35,6 +35,10 @@ fun CollaborationScreen(onGroupClick: (String) -> Unit) {
     var newGroupDesc by remember { mutableStateOf("") }
     var currentTab by remember { mutableStateOf(0) } // 0: My Groups, 1: Assigned to me
 
+    LaunchedEffect(currentTab) {
+        viewModel.loadGroups()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -114,9 +118,13 @@ fun CollaborationScreen(onGroupClick: (String) -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
             
-            if (uiState.groups.isEmpty() && !uiState.isLoading) {
+            if (currentTab == 0 && uiState.groups.isEmpty() && !uiState.isLoading) {
                 item {
                     Text(Localization.get("no_groups"), color = TextSecondary, modifier = Modifier.padding(vertical = 16.dp))
+                }
+            } else if (currentTab == 1 && uiState.sharedSchedules.isEmpty() && !uiState.isLoading) {
+                item {
+                    Text(Localization.get("no_assigned_tasks"), color = TextSecondary, modifier = Modifier.padding(vertical = 16.dp))
                 }
             }
 

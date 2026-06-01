@@ -30,46 +30,51 @@ object ApiClient {
     var authToken: String? = null
     var refreshToken: String? = null
 
-    val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-                coerceInputValues = true
-            })
-        }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 30000
-            connectTimeoutMillis = 30000
-            socketTimeoutMillis = 30000
-        }
-        install(Logging) {
-            level = LogLevel.BODY
-        }
-        install(WebSockets)
-        install(Auth) {
-            bearer {
-                loadTokens {
-                    if (authToken != null) BearerTokens(authToken!!, refreshToken ?: "") else null
-                }
-                refreshTokens {
-                    if (refreshToken == null) return@refreshTokens null
-                    
-                    try {
-                        val response: ApiResponse<AuthResponseData> = client.post(getUrl("/auth/refresh")) {
-                            setBody(mapOf("token" to refreshToken))
-                            contentType(ContentType.Application.Json)
-                            markAsRefreshTokenRequest()
-                        }.body()
+    var client = createHttpClient()
+        private set
+
+    private fun createHttpClient(): HttpClient {
+        return HttpClient {
+            install(ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                    coerceInputValues = true
+                })
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 30000
+                connectTimeoutMillis = 30000
+                socketTimeoutMillis = 30000
+            }
+            install(Logging) {
+                level = LogLevel.BODY
+            }
+            install(WebSockets)
+            install(Auth) {
+                bearer {
+                    loadTokens {
+                        if (authToken != null) BearerTokens(authToken!!, refreshToken ?: "") else null
+                    }
+                    refreshTokens {
+                        if (refreshToken == null) return@refreshTokens null
                         
-                        if (response.success == true && response.data != null) {
-                            setTokens(response.data.token, response.data.refreshToken ?: "")
-                            BearerTokens(response.data.token, response.data.refreshToken ?: "")
-                        } else {
+                        try {
+                            val response: ApiResponse<AuthResponseData> = client.post(getUrl("/auth/refresh")) {
+                                setBody(mapOf("token" to refreshToken))
+                                contentType(ContentType.Application.Json)
+                                markAsRefreshTokenRequest()
+                            }.body()
+                            
+                            if (response.success == true && response.data != null) {
+                                setTokens(response.data.token, response.data.refreshToken ?: "")
+                                BearerTokens(response.data.token, response.data.refreshToken ?: "")
+                            } else {
+                                null
+                            }
+                        } catch (e: Exception) {
                             null
                         }
-                    } catch (e: Exception) {
-                        null
                     }
                 }
             }
@@ -87,10 +92,12 @@ object ApiClient {
     fun setTokens(token: String, refresh: String) {
         authToken = token
         refreshToken = refresh
+        client = createHttpClient()
     }
 
     fun clearTokens() {
         authToken = null
         refreshToken = null
+        client = createHttpClient()
     }
 }

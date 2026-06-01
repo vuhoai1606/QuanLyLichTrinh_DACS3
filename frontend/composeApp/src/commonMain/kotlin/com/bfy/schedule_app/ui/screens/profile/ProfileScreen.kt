@@ -34,6 +34,7 @@ import com.bfy.schedule_app.utils.SettingsManager
 import com.bfy.schedule_app.utils.Language
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
+import com.bfy.schedule_app.rememberBitmapFromUrlOrBase64
 
 @Composable
 fun ProfileScreen(onLogout: () -> Unit = {}) {
@@ -53,8 +54,8 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         EditProfileScreen(
             user = user,
             onDismiss = { showEditProfileScreen = false },
-            onSave = { fullName, bio, gender, dob ->
-                viewModel.updateProfile(fullName = fullName, bio = bio, gender = gender, dob = dob)
+            onSave = { fullName, bio, gender, dob, avatarUrl ->
+                viewModel.updateProfile(fullName = fullName, bio = bio, avatarUrl = avatarUrl, gender = gender, dob = dob)
                 showEditProfileScreen = false
             }
         )
@@ -144,10 +145,23 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(CircleShape)
-                                    .background(Color.Gray),
+                                    .background(Color(0xFF3B1A66)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = Color.DarkGray, modifier = Modifier.size(48.dp))
+                                val bitmap = rememberBitmapFromUrlOrBase64(user?.avatar_url)
+                                if (bitmap != null) {
+                                    androidx.compose.foundation.Image(
+                                        bitmap = bitmap,
+                                        contentDescription = "Avatar",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                } else if (!user?.avatar_url.isNullOrBlank()) {
+                                    val initials = (user?.full_name ?: "?").split(" ").mapNotNull { it.firstOrNull() }.joinToString("").take(2).uppercase()
+                                    Text(initials, color = Color(0xFFAD7BFF), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.DarkGray, modifier = Modifier.size(48.dp))
+                                }
                             }
                         }
                         
@@ -635,14 +649,21 @@ fun InfoDetailRow(title: String, value: String, icon: ImageVector) {
 fun EditProfileScreen(
     user: UserDto?,
     onDismiss: () -> Unit,
-    onSave: (fullName: String, bio: String, gender: String, dob: String) -> Unit
+    onSave: (fullName: String, bio: String, gender: String, dob: String, avatarUrl: String) -> Unit
 ) {
     var nameInput by remember { mutableStateOf(user?.full_name ?: "") }
     var bioInput by remember { mutableStateOf(user?.bio ?: "") }
     var genderInput by remember { mutableStateOf(user?.gender ?: "Male") }
     var dobInput by remember { mutableStateOf(user?.dob ?: "") }
+    var avatarUrlInput by remember { mutableStateOf(user?.avatar_url ?: "") }
 
     var nameError by remember { mutableStateOf(false) }
+    var showAvatarDialog by remember { mutableStateOf(false) }
+
+    val pickImage = com.bfy.schedule_app.rememberImagePicker { base64 ->
+        avatarUrlInput = base64
+        showAvatarDialog = false
+    }
 
     Scaffold(
         topBar = {
@@ -672,16 +693,132 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E2023))
-                        .border(2.dp, Color(0xFF59DBC7), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(56.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF1E2023))
+                            .border(2.dp, Color(0xFF59DBC7), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val bitmap = rememberBitmapFromUrlOrBase64(avatarUrlInput)
+                        if (bitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = bitmap,
+                                contentDescription = "Avatar",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        } else if (!avatarUrlInput.isNullOrBlank()) {
+                            val initials = nameInput.split(" ").mapNotNull { it.firstOrNull() }.joinToString("").take(2).uppercase()
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(Color(0xFF3B1A66)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(initials, color = Color(0xFFAD7BFF), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(56.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = Localization.get("change_avatar") ?: "Change Avatar",
+                        color = Color(0xFF59DBC7),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clickable { showAvatarDialog = true }
+                            .padding(8.dp)
+                    )
                 }
+            }
+
+            if (showAvatarDialog) {
+                val presetAvatars = listOf(
+                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=60"
+                )
+
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showAvatarDialog = false },
+                    title = { Text("Select Avatar", color = Color.White, fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text("Choose from premium presets:", color = Color(0xFFBBCAC5), fontSize = 14.sp)
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val rows = presetAvatars.chunked(3)
+                                rows.forEachIndexed { rowIndex, rowList ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        rowList.forEachIndexed { colIndex, url ->
+                                            val globalIndex = rowIndex * 3 + colIndex
+                                            val isSelected = avatarUrlInput == url
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .aspectRatio(1f)
+                                                    .clip(CircleShape)
+                                                    .background(if (isSelected) Color(0xFF59DBC7) else Color(0xFF282A2D))
+                                                    .border(
+                                                        2.dp,
+                                                        if (isSelected) Color(0xFF59DBC7) else Color.Transparent,
+                                                        CircleShape
+                                                    )
+                                                    .clickable { avatarUrlInput = url; showAvatarDialog = false }
+                                                    .padding(4.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "AV ${globalIndex + 1}",
+                                                    color = if (isSelected) Color(0xFF003731) else Color.White,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { 
+                                    pickImage()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color(0x2659DBC7),
+                                    contentColor = Color(0xFF59DBC7)
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Select from Device", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { showAvatarDialog = false }) {
+                            Text("OK", color = Color(0xFF59DBC7))
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { showAvatarDialog = false }) {
+                            Text("Cancel", color = Color.Gray)
+                        }
+                    },
+                    containerColor = Color(0xFF1E2023),
+                    shape = RoundedCornerShape(16.dp)
+                )
             }
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -773,7 +910,7 @@ fun EditProfileScreen(
             Button(
                 onClick = {
                     if (nameInput.isNotBlank()) {
-                        onSave(nameInput, bioInput, genderInput, dobInput)
+                        onSave(nameInput, bioInput, genderInput, dobInput, avatarUrlInput)
                     } else {
                         nameError = true
                     }

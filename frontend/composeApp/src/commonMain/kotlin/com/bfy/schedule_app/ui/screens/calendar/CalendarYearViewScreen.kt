@@ -118,17 +118,7 @@ fun SmallMonthGrid(
 
                         // Check if day has schedules
                         val hasSchedules = schedules.any { schedule ->
-                            val itemDate = try {
-                                val startStr = schedule.start_time ?: schedule.deadline
-                                if (startStr != null) {
-                                    Instant.parse(startStr).toLocalDateTime(TimeZone.currentSystemDefault()).date
-                                } else {
-                                    null
-                                }
-                            } catch (e: Exception) {
-                                null
-                            }
-                            itemDate == gridDate
+                            com.bfy.schedule_app.utils.ScheduleUtils.matchesDate(schedule, gridDate)
                         }
 
                         Box(
@@ -148,13 +138,13 @@ fun SmallMonthGrid(
                                 Text(
                                     text = dayNum.toString(),
                                     color = if (isHighlighted) TextDark else TextSecondary,
-                                    fontSize = 9.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal
                                 )
                                 if (hasSchedules) {
                                     Box(
                                         modifier = Modifier
-                                            .size(3.dp)
+                                            .size(5.dp)
                                             .clip(CircleShape)
                                             .background(if (isHighlighted) TextDark else Color(0xFFAD7BFF))
                                     )

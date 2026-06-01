@@ -127,6 +127,7 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
     }
 
     fun logout() {
+        com.bfy.schedule_app.data.remote.api.ApiClient.clearTokens()
         _uiState.value = AuthUiState()
     }
 }

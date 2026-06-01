@@ -13,3 +13,13 @@ actual fun getPlatform(): Platform = IOSPlatform()
 actual fun BackHandlerWrapper(enabled: Boolean, onBack: () -> Unit) {
     // No-op for iOS
 }
+
+@Composable
+actual fun rememberImagePicker(onImagePicked: (String) -> Unit): () -> Unit {
+    return {}
+}
+
+@Composable
+actual fun rememberBitmapFromUrlOrBase64(source: String?): androidx.compose.ui.graphics.ImageBitmap? {
+    return null
+}

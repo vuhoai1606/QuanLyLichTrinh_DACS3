@@ -51,6 +51,12 @@ export class Schedule {
   @Column({ type: "text", nullable: true })
   rrule: string;
 
+  @Column({ type: "boolean", default: false })
+  is_recurring: boolean;
+
+  @Column({ type: "varchar", nullable: true })
+  recurrence_type: string;
+
   @Column({ type: "varchar", enum: ["PENDING", "DOING", "DONE"], default: "PENDING" })
   status: "PENDING" | "DOING" | "DONE";
 

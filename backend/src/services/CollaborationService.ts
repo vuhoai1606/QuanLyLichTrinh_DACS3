@@ -477,9 +477,11 @@ export class CollaborationService {
       relations: ["creator", "category", "reminders"],
     });
 
+    const filteredSchedules = schedules.filter((s: any) => s.group_id !== null && s.group_id !== undefined && s.creator_id !== user_id);
+
     return {
-      totalShared: schedules.length,
-      schedules: schedules.map((s: any) => ({
+      totalShared: filteredSchedules.length,
+      schedules: filteredSchedules.map((s: any) => ({
         ...s,
         permission: collaborations.find(c => c.schedule_id === s.id)?.permission_level || "VIEW",
       })),

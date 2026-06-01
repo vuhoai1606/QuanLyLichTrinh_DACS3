@@ -43,6 +43,11 @@ class CalendarViewModel(private val repository: AppRepository = AppRepository())
         _uiState.value = _uiState.value.copy(selectedDate = date)
     }
 
+    fun goToToday() {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        _uiState.value = _uiState.value.copy(selectedDate = today)
+    }
+
     fun nextMonth() {
         val current = _uiState.value.selectedDate
         val next = if (current.monthNumber == 12) {
