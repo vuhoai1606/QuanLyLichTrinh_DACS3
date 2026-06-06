@@ -170,6 +170,8 @@ export class CollaborationService {
       end_time: task.end_time,
       creator_id: task.creator_id,
       assignees: task.assignments?.map((a: any) => a.assignee?.full_name).filter(Boolean) || [],
+      completed_assignees: task.assignments?.filter((a: any) => a.is_completed).length || 0,
+      total_assignees: task.assignments?.length || 0,
       created_at: task.created_at,
     }));
   }
@@ -477,7 +479,7 @@ export class CollaborationService {
       relations: ["creator", "category", "reminders"],
     });
 
-    const filteredSchedules = schedules.filter((s: any) => s.group_id !== null && s.group_id !== undefined && s.creator_id !== user_id);
+    const filteredSchedules = schedules.filter((s: any) => s.group_id !== null && s.group_id !== undefined);
 
     return {
       totalShared: filteredSchedules.length,

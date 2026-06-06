@@ -1,4 +1,5 @@
 import authService from "@services/AuthService";
+import otpService from "@services/OTPService";
 import { successResponse, errorResponse, AppError } from "@utils/errors";
 import { AuthContext } from "@middleware/auth";
 import { validateRegister, validateLogin, validateChangePassword, validateUpdateProfile, RegisterDTO, LoginDTO } from "@dtos/auth.dto";
@@ -6,6 +7,64 @@ import { logger } from "@utils/logger";
 import { APP_CONSTANTS } from "@constants/app.constants";
 
 export class AuthController {
+  
+  async forgotPassword(body: any): Promise<Response> {
+    try {
+      const { email } = body;
+      if (!email) return errorResponse(400, "Missing email");
+      
+      await otpService.requestOTP(email, "FORGOT_PASSWORD");
+      return successResponse(null, "OTP sent successfully");
+    } catch (error) {
+      logger.error("Forgot Password error", error);
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  async requestOTP(body: any): Promise<Response> {
+    try {
+      const { email, purpose } = body;
+      if (!email || !purpose) return errorResponse(400, "Missing email or purpose");
+      
+      await otpService.requestOTP(email, purpose);
+      return successResponse(null, "OTP sent successfully");
+    } catch (error) {
+      logger.error("Request OTP error", error);
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  async verifyOTP(body: any): Promise<Response> {
+    try {
+      const { email, otp, purpose } = body;
+      if (!email || !otp || !purpose) return errorResponse(400, "Missing email, otp or purpose");
+      
+      const isValid = await otpService.verifyOTP(email, otp, purpose);
+      if (!isValid) return errorResponse(400, "Invalid or expired OTP");
+      
+      return successResponse({ verified: true }, "OTP verified successfully");
+    } catch (error) {
+      logger.error("Verify OTP error", error);
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  async resetPassword(body: any): Promise<Response> {
+    try {
+      const { email, otp, new_password } = body;
+      if (!email || !otp || !new_password) return errorResponse(400, "Missing email, otp or new_password");
+      
+      const isValid = await otpService.verifyOTP(email, otp, "FORGOT_PASSWORD");
+      if (!isValid) return errorResponse(400, "Invalid or expired OTP");
+      
+      await authService.changePasswordWithEmail(email, new_password);
+      return successResponse(null, "Password reset successfully");
+    } catch (error) {
+      logger.error("Reset Password error", error);
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
   /**
    * Register new user
    * POST /api/auth/register

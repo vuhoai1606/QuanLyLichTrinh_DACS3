@@ -24,7 +24,9 @@ data class ScheduleDto(
     val category_color: String? = null,
     val is_countdown_enabled: Boolean = false,
     val group_id: String? = null,
-    val assignees: List<String>? = null
+    val assignees: List<String>? = null,
+    val completed_assignees: Int? = null,
+    val total_assignees: Int? = null
 )
 
 @Serializable

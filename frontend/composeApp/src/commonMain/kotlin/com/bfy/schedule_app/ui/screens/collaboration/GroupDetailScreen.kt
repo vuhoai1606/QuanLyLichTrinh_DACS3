@@ -445,6 +445,8 @@ private enum class GroupTaskStatus(
 
 @Composable
 private fun GroupTaskCard(
+    completedAssignees: Int = 0,
+    totalAssignees: Int = 0,
     status: GroupTaskStatus,
     dateText: String,
     title: String,
@@ -528,10 +530,32 @@ private fun GroupTaskCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(description, color = Color(0xFFBBCAC5), fontSize = 16.sp, lineHeight = 24.sp)
 
-            if (status == GroupTaskStatus.IN_PROGRESS) {
-                Spacer(modifier = Modifier.height(8.dp))
-                val progressValue = 0.5f
-                Box(
+            if (status == GroupTaskStatus.IN_PROGRESS || status == GroupTaskStatus.TODO) {
+                if (totalAssignees > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val progressValue = if (totalAssignees > 0) completedAssignees.toFloat() / totalAssignees.toFloat() else 0f
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color(0xFF2D1B4A))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(progressValue)
+                                    .background(status.borderColor)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("${completedAssignees}/${totalAssignees} Done", color = Color(0xFFBBCAC5), fontSize = 12.sp)
+                    }
+                } else if (status == GroupTaskStatus.IN_PROGRESS) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val progressValue = 0.5f
+                    Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
@@ -553,6 +577,7 @@ private fun GroupTaskCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text("${(progressValue * 100).toInt()}% ${Localization.get("complete")}", color = Color(0xFFBBCAC5), fontSize = 12.sp, letterSpacing = 0.48.sp, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
+                }
             } else {
                 Spacer(modifier = Modifier.height(16.dp))
             }

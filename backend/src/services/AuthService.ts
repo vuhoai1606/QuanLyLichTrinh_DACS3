@@ -6,6 +6,16 @@ import { AppError } from "@utils/errors";
 import jwt from "jsonwebtoken";
 
 export class AuthService {
+  async changePasswordWithEmail(email: string, new_password: string): Promise<boolean> {
+    const userRepository = AppDataSource.getRepository("User");
+    const user = await userRepository.findOne({ where: { email } });
+    if (!user) throw new AppError(404, "User not found", "USER_NOT_FOUND");
+    
+    user.password_hash = await hashPassword(new_password);
+    await userRepository.save(user);
+    return true;
+  }
+
   async register(email: string, password: string, full_name: string, gender?: string, dob?: string): Promise<any> {
     console.log("🔐 Service: Register started for", email);
     const userRepository = AppDataSource.getRepository("User");

@@ -16,6 +16,9 @@ export class ScheduleAssignment {
   @Column({ type: "timestamp" })
   created_at: Date;
 
+  @Column({ type: "boolean", default: false })
+  is_completed: boolean;
+
   @Column({ type: "timestamp" })
   updated_at: Date;
 

@@ -11,6 +11,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import com.bfy.schedule_app.rememberBitmapFromUrlOrBase64
+import com.bfy.schedule_app.rememberImagePicker
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +48,12 @@ fun GroupSettingsDialog(
     var name by remember { mutableStateOf(group?.name ?: "") }
     var avatarUrl by remember { mutableStateOf(group?.avatar_url ?: "") }
     var searchQuery by remember { mutableStateOf("") }
+    var showAvatarDialog by remember { mutableStateOf(false) }
+
+    val pickImage = rememberImagePicker { base64 ->
+        avatarUrl = base64
+        showAvatarDialog = false
+    }
 
     val localMembers = remember(members) { mutableStateListOf(*members.toTypedArray()) }
     val isDirty = name != group?.name || avatarUrl != (group?.avatar_url ?: "") || localMembers.toList() != members
@@ -74,19 +88,41 @@ fun GroupSettingsDialog(
                     Text(Localization.get("group_avatar") ?: "Group Avatar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = avatarUrl,
-                        onValueChange = { avatarUrl = it },
-                        label = { Text(Localization.get("group_image_url") ?: "Group Image URL") },
-                        placeholder = { Text("https://example.com/avatar.jpg", color = Color(0xFF869490)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            textColor = TextPrimary,
-                            unfocusedBorderColor = Color(0xFF333538),
-                            focusedBorderColor = PrimaryColor
-                        ),
-                        singleLine = true
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF25262B))
+                                .border(2.dp, Color(0xFF333538), CircleShape)
+                                .clickable { showAvatarDialog = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (avatarUrl.isNotBlank()) {
+                                val bitmap = rememberBitmapFromUrlOrBase64(avatarUrl)
+                                if (bitmap != null) {
+                                    Image(
+                                        bitmap = bitmap,
+                                        contentDescription = "Avatar",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(56.dp))
+                                }
+                            } else {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(56.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = Localization.get("change_avatar") ?: "Change Avatar",
+                            color = Color(0xFF59DBC7),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable { showAvatarDialog = true }.padding(8.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
 
                     OutlinedTextField(
@@ -312,6 +348,83 @@ fun GroupSettingsDialog(
                         }
                     }
                 }
+            }
+
+            if (showAvatarDialog) {
+                val presetAvatars = listOf(
+                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60",
+                    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=60"
+                )
+
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showAvatarDialog = false },
+                    title = { Text("Select Avatar", color = Color.White, fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text("Choose from premium presets:", color = Color(0xFFBBCAC5), fontSize = 14.sp)
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val rows = presetAvatars.chunked(3)
+                                rows.forEachIndexed { rowIndex, rowList ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        rowList.forEachIndexed { colIndex, url ->
+                                            val globalIndex = rowIndex * 3 + colIndex
+                                            val isSelected = avatarUrl == url
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(60.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (isSelected) Color(0xFF59DBC7) else Color.Transparent,
+                                                        CircleShape
+                                                    )
+                                                    .clickable { avatarUrl = url; showAvatarDialog = false }
+                                                    .padding(4.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "AV ",
+                                                    color = if (isSelected) Color(0xFF003731) else Color.White,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            androidx.compose.material3.Button(
+                                onClick = { pickImage() },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF2D1B4A)),
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFFAD7BFF))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Upload Image", color = Color(0xFFAD7BFF), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { showAvatarDialog = false }) {
+                            Text("OK", color = Color(0xFF59DBC7))
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { showAvatarDialog = false }) {
+                            Text("Cancel", color = Color.Gray)
+                        }
+                    },
+                    containerColor = Color(0xFF1E2023),
+                    shape = RoundedCornerShape(16.dp)
+                )
             }
         }
     }
