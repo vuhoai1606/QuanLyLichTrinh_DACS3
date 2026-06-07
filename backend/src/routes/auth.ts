@@ -4,6 +4,11 @@ import authController from "@controllers/AuthController";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
   .post(
+    "/request-otp",
+    async ({ body }: { body: any }) => authController.requestOTP(body),
+    { tags: ["Auth"] }
+  )
+  .post(
     "/register",
     async ({ body }: { body: any }) => authController.register(body),
     { tags: ["Auth"] }
@@ -64,7 +69,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
   )
   .post(
     "/verify-otp",
-    async ({ body }: { body: any }) => authController.verifyOtp(body),
+    async ({ body }: { body: any }) => authController.verifyOTP(body),
     { tags: ["Auth"] }
   )
   .post(

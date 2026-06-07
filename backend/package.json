@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/bootstrap.ts",
-    "build": "bun build src/bootstrap.ts --outdir dist",
+    "build": "bun build src/bootstrap.ts --outdir dist --target=bun",
     "start": "bun src/bootstrap.ts",
     "prod": "bun dist/bootstrap.js",
     "test:setup": "bun run setup-test-db.js",
@@ -22,6 +22,7 @@
     "elysia": "^1.4.28",
     "elysia-rate-limit": "^4.6.2",
     "firebase-admin": "^13.10.0",
+    "google-auth-library": "^10.7.0",
     "jsonwebtoken": "^9.0.3",
     "luxon": "^3.7.2",
     "pg": "^8.20.0",

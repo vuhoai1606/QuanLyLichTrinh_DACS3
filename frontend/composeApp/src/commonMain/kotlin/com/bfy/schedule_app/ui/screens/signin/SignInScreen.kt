@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.components.*
 import com.bfy.schedule_app.ui.theme.*
+import com.bfy.schedule_app.ui.components.GoogleSignInButton
 import com.bfy.schedule_app.ui.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
@@ -161,9 +162,11 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(8.dp))
             
             GoogleSignInButton(
-                onClick = {
-                    // Mock Google Login for demo
-                    viewModel.googleLogin("google_123", "google_user@gmail.com", "Google User")
+                text = "Continue with Google",
+                onTokenReceived = { token ->
+                    if (token != null) {
+                        viewModel.googleLogin(token)
+                    }
                 }
             )
             

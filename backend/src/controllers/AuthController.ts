@@ -1,10 +1,14 @@
 import authService from "@services/AuthService";
+import { OAuth2Client } from "google-auth-library";
 import otpService from "@services/OTPService";
 import { successResponse, errorResponse, AppError } from "@utils/errors";
 import { AuthContext } from "@middleware/auth";
 import { validateRegister, validateLogin, validateChangePassword, validateUpdateProfile, RegisterDTO, LoginDTO } from "@dtos/auth.dto";
 import { logger } from "@utils/logger";
 import { APP_CONSTANTS } from "@constants/app.constants";
+
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || "731620527212-10kqcai1ib22t3be0rimj085poa4h7ra.apps.googleusercontent.com");
 
 export class AuthController {
   
@@ -36,10 +40,10 @@ export class AuthController {
 
   async verifyOTP(body: any): Promise<Response> {
     try {
-      const { email, otp, purpose } = body;
-      if (!email || !otp || !purpose) return errorResponse(400, "Missing email, otp or purpose");
+      const { email, otp, purpose = "FORGOT_PASSWORD" } = body;
+      if (!email || !otp) return errorResponse(400, "Missing email or otp");
       
-      const isValid = await otpService.verifyOTP(email, otp, purpose);
+      const isValid = await otpService.verifyOTP(email, otp, purpose, false);
       if (!isValid) return errorResponse(400, "Invalid or expired OTP");
       
       return successResponse({ verified: true }, "OTP verified successfully");
@@ -51,13 +55,13 @@ export class AuthController {
 
   async resetPassword(body: any): Promise<Response> {
     try {
-      const { email, otp, new_password } = body;
-      if (!email || !otp || !new_password) return errorResponse(400, "Missing email, otp or new_password");
+      const { email, otp, newPassword } = body;
+      if (!email || !otp || !newPassword) return errorResponse(400, "Missing email, otp or newPassword");
       
       const isValid = await otpService.verifyOTP(email, otp, "FORGOT_PASSWORD");
       if (!isValid) return errorResponse(400, "Invalid or expired OTP");
       
-      await authService.changePasswordWithEmail(email, new_password);
+      await authService.changePasswordWithEmail(email, newPassword);
       return successResponse(null, "Password reset successfully");
     } catch (error) {
       logger.error("Reset Password error", error);
@@ -156,32 +160,43 @@ export class AuthController {
    */
   async googleLogin(body: any): Promise<Response> {
     try {
-      const { googleId, email, fullName, avatarUrl } = body;
-
-      if (!googleId || !email) {
-        return errorResponse(400, "Google ID and email are required", "MISSING_FIELDS");
+      const { idToken } = body;
+      
+      if (!idToken) {
+        return errorResponse(400, "Missing idToken", "INVALID_INPUT");
       }
 
-      const result = await authService.googleLogin(googleId, email, fullName, avatarUrl);
-      logger.info("User logged in via Google", { userId: result.user.id, email: email });
+      // Verify token
+      const ticket = await client.verifyIdToken({
+        idToken: idToken,
+        audience: process.env.GOOGLE_CLIENT_ID || "731620527212-10kqcai1ib22t3be0rimj085poa4h7ra.apps.googleusercontent.com",
+      });
+      
+      const payload = ticket.getPayload();
+      if (!payload) {
+        return errorResponse(401, "Invalid Google token", "UNAUTHORIZED");
+      }
 
+      const googleId = payload.sub;
+      const email = payload.email || "";
+      const fullName = payload.name || "Google User";
+      const avatarUrl = payload.picture;
+
+      const result = await authService.googleLogin(googleId, email, fullName, avatarUrl);
+      
       return successResponse(
         {
           user: result.user,
           token: result.token,
         },
-        "Google login successful"
+        "Login with Google successful",
+        APP_CONSTANTS.HTTP.OK
       );
     } catch (error) {
-      logger.error("Google login error", error instanceof Error ? error : new Error(String(error)));
-      if (error instanceof AppError) {
-        return errorResponse(error.status, error.message, error.code);
-      }
-      return errorResponse(500, "Internal server error");
+      logger.error("Google Login error", error instanceof Error ? error : new Error(String(error)));
+      return errorResponse(500, "Internal server error", "INTERNAL_ERROR");
     }
   }
-
-  // Get current user profile
   async getProfile(ctx: AuthContext) {
     if (!ctx.user) {
       return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
@@ -230,63 +245,6 @@ export class AuthController {
     try {
       const result = await authService.changePassword(ctx.user.userId, oldPassword, newPassword);
       return successResponse(result, "Password changed successfully");
-    } catch (error) {
-      if (error instanceof AppError) {
-        return errorResponse(error.status, error.message, error.code);
-      }
-      return errorResponse(500, "Internal server error");
-    }
-  }
-
-  // Forgot password
-  async forgotPassword(body: any) {
-    const { email } = body;
-
-    if (!email) {
-      return errorResponse(400, "Email is required", "MISSING_EMAIL");
-    }
-
-    try {
-      const result = await authService.forgotPassword(email);
-      return successResponse(result, "Password reset instructions sent");
-    } catch (error) {
-      if (error instanceof AppError) {
-        return errorResponse(error.status, error.message, error.code);
-      }
-      return errorResponse(500, "Internal server error");
-    }
-  }
-
-  // Reset password
-  async resetPassword(body: any) {
-    const { email, otp, newPassword } = body;
-
-    if (!email || !otp || !newPassword) {
-      return errorResponse(400, "Email, OTP and new password required", "MISSING_FIELDS");
-    }
-
-    try {
-      const result = await authService.resetPassword(email, otp, newPassword);
-      return successResponse(result, "Password reset successfully");
-    } catch (error) {
-      if (error instanceof AppError) {
-        return errorResponse(error.status, error.message, error.code);
-      }
-      return errorResponse(500, "Internal server error");
-    }
-  }
-
-  // Verify OTP
-  async verifyOtp(body: any) {
-    const { email, otp } = body;
-
-    if (!email || !otp) {
-      return errorResponse(400, "Email and OTP required", "MISSING_FIELDS");
-    }
-
-    try {
-      const result = await authService.verifyOtp(email, otp);
-      return successResponse(result, "OTP verified successfully");
     } catch (error) {
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);

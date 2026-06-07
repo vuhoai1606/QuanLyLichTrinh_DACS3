@@ -22,6 +22,7 @@ data class ScheduleDto(
     val reminders: List<ReminderDto> = emptyList(),
     val category_name: String? = null,
     val category_color: String? = null,
+    val assignments: List<ScheduleAssignmentDto> = emptyList(),
     val is_countdown_enabled: Boolean = false,
     val group_id: String? = null,
     val assignees: List<String>? = null,
@@ -50,6 +51,7 @@ data class UpdateScheduleRequest(
     val recurrence_type: String? = null,
     val category_name: String? = null,
     val category_color: String? = null,
+    val assignments: List<ScheduleAssignmentDto> = emptyList(),
     val is_countdown_enabled: Boolean? = null,
     val reminders: List<ReminderDto>? = null
 )

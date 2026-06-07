@@ -21,6 +21,8 @@ import {
   RefreshTokenSchema,
 } from "@config/schemas";
 
+import { OTPCode } from "../models/OTPCode";
+
 export let AppDataSource: DataSource;
 
 export async function connectDB() {
@@ -36,6 +38,7 @@ export async function connectDB() {
       synchronize: config.nodeEnv === "development" || config.nodeEnv === "test",
       logging: config.nodeEnv === "development",
       entities: [
+        OTPCode,
         UserSchema,
         UserSettingsSchema,
         CategorySchema,

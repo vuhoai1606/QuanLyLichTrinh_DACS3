@@ -28,7 +28,7 @@ class OTPService {
     return true;
   }
 
-  async verifyOTP(email: string, code: string, purpose: string) {
+  async verifyOTP(email: string, code: string, purpose: string, consume: boolean = true) {
     const otpRepository = AppDataSource.getRepository("OTPCode");
     
     const otp = await otpRepository.findOne({ where: { email, code, purpose } });
@@ -41,8 +41,10 @@ class OTPService {
       return false;
     }
 
-    // OTP valid, remove it
-    await otpRepository.remove(otp);
+    // OTP valid, remove it if consume is true
+    if (consume) {
+      await otpRepository.remove(otp);
+    }
     return true;
   }
 }

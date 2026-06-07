@@ -112,7 +112,7 @@ class AppRepository {
         }
     }
 
-    suspend fun register(fullName: String, email: String, password: String, gender: String? = null, dob: String? = null): AuthResponseData {
+    suspend fun register(fullName: String, email: String, password: String, gender: String? = null, dob: String? = null, otp: String): AuthResponseData {
         val response: ApiResponse<AuthResponseData> = client.post(ApiClient.getUrl("/auth/register")) {
             setBody(mapOf(
                 "full_name" to fullName,
@@ -132,15 +132,10 @@ class AppRepository {
         }
     }
 
-    suspend fun googleLogin(googleId: String, email: String, fullName: String, avatarUrl: String? = null): AuthResponseData {
+    suspend fun googleLogin(idToken: String): AuthResponseData {
         val response: ApiResponse<AuthResponseData> = client.post(ApiClient.getUrl("/auth/google-login")) {
-            contentType(ContentType.Application.Json)
-            setBody(mapOf(
-                "googleId" to googleId,
-                "email" to email,
-                "fullName" to fullName,
-                "avatarUrl" to avatarUrl
-            ))
+            contentType(io.ktor.http.ContentType.Application.Json)
+            setBody(mapOf("idToken" to idToken))
         }.body()
         
         if (response.success != true) {
@@ -170,6 +165,14 @@ class AppRepository {
         return true
     }
 
+        suspend fun requestOtp(email: String, purpose: String): Boolean {
+        val response: ApiResponse<Unit> = client.post(ApiClient.getUrl("/auth/request-otp")) {
+            contentType(io.ktor.http.ContentType.Application.Json)
+            setBody(mapOf("email" to email, "purpose" to purpose))
+        }.body()
+        return response.success == true
+    }
+
     suspend fun forgotPassword(email: String): Boolean {
         val response: ApiResponse<Unit> = client.post(ApiClient.getUrl("/auth/forgot-password")) {
             contentType(ContentType.Application.Json)
@@ -181,7 +184,7 @@ class AppRepository {
     suspend fun verifyOtp(email: String, otp: String): Boolean {
         val response: ApiResponse<Unit> = client.post(ApiClient.getUrl("/auth/verify-otp")) {
             contentType(ContentType.Application.Json)
-            setBody(mapOf("email" to email, "otp" to otp))
+            setBody(mapOf("email" to email, "otp" to otp, "purpose" to "FORGOT_PASSWORD"))
         }.body()
         return response.success == true
     }
@@ -229,6 +232,20 @@ class AppRepository {
             }
         }.body()
         return response.data ?: emptyList()
+    }
+
+    suspend fun updateAssigneeStatus(id: String, userId: String, isCompleted: Boolean): Any {
+        val response: ApiResponse<Unit> = client.patch(ApiClient.getUrl("/schedules//assignee-status")) {
+            if (ApiClient.authToken != null) {
+                header("Authorization", "Bearer ")
+            }
+            setBody(mapOf("user_id" to userId, "is_completed" to isCompleted))
+            contentType(io.ktor.http.ContentType.Application.Json)
+        }.body()
+        if (response.success == true) {
+            return response.data ?: Any()
+        }
+        throw Exception(response.message ?: "Failed to update assignee status")
     }
 
     suspend fun updateSchedule(scheduleId: String, updates: com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest) {

@@ -39,11 +39,24 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
         }
     }
 
-    fun register(fullName: String, email: String, password: String, gender: String? = null, dob: String? = null) {
+    fun requestOtp(email: String, purpose: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = repository.register(fullName, email, password, gender, dob)
+                repository.requestOtp(email, purpose)
+                _uiState.value = _uiState.value.copy(isLoading = false)
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    fun register(fullName: String, email: String, password: String, gender: String? = null, dob: String? = null, otp: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = repository.register(fullName, email, password, gender, dob, otp)
                 _uiState.value = AuthUiState(
                     isLoading = false,
                     isAuthenticated = true,
@@ -57,11 +70,11 @@ class AuthViewModel(private val repository: AppRepository = AppRepository()) : V
         }
     }
 
-    fun googleLogin(googleId: String, email: String, fullName: String, avatarUrl: String? = null) {
+    fun googleLogin(idToken: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = repository.googleLogin(googleId, email, fullName, avatarUrl)
+                val response = repository.googleLogin(idToken)
                 _uiState.value = AuthUiState(
                     isLoading = false,
                     isAuthenticated = true,

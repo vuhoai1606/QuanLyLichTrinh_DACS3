@@ -53,7 +53,7 @@ enum class DashboardTab {
 }
 
 @Composable
-fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
+fun HomeDashboardScreen(userId: String = "", onLogout: () -> Unit = {}) {
     var selectedTab by remember { mutableStateOf(DashboardTab.HOME) }
     var showGroupDetail by remember { mutableStateOf(false) }
     var selectedGroupId by remember { mutableStateOf<String?>(null) }
@@ -65,9 +65,9 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
     var showActionDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
     
-    val viewModel: HomeViewModel = viewModel { HomeViewModel() }
-    val focusViewModel: com.bfy.schedule_app.ui.viewmodel.FocusViewModel = viewModel { com.bfy.schedule_app.ui.viewmodel.FocusViewModel() }
-    val notificationViewModel: com.bfy.schedule_app.ui.viewmodel.NotificationViewModel = viewModel { com.bfy.schedule_app.ui.viewmodel.NotificationViewModel() }
+    val viewModel: HomeViewModel = viewModel(key = "home_$userId") { HomeViewModel() }
+    val focusViewModel: com.bfy.schedule_app.ui.viewmodel.FocusViewModel = viewModel(key = "focus_$userId") { com.bfy.schedule_app.ui.viewmodel.FocusViewModel() }
+    val notificationViewModel: com.bfy.schedule_app.ui.viewmodel.NotificationViewModel = viewModel(key = "notif_$userId") { com.bfy.schedule_app.ui.viewmodel.NotificationViewModel() }
     
     val uiState by viewModel.uiState.collectAsState()
     val focusUiState by focusViewModel.uiState.collectAsState()
@@ -239,9 +239,10 @@ fun HomeDashboardScreen(onLogout: () -> Unit = {}) {
                                 onClick = {
                                     scope.launch {
                                         try {
-                                            AppRepository().updateSchedule(
+                                            AppRepository().updateAssigneeStatus(
                                                 selectedScheduleForAction!!.id,
-                                                com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest(status = "DONE")
+                                                userId,
+                                                true
                                             )
                                             viewModel.loadDashboardData()
                                             showActionDialog = false
@@ -678,8 +679,15 @@ fun UserInfoSection(name: String, rank: String, level: Int, onLeaderboardClick: 
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
-            Text("Hello, $name!", color = TextPrimary, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(
+                text = "Hello, $name!", 
+                color = TextPrimary, 
+                fontSize = 32.sp, 
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
             Text("Rank: $rank", color = TextSecondary, fontSize = 16.sp)
         }
         Text(

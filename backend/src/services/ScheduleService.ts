@@ -183,7 +183,7 @@ export class ScheduleService {
 
       const [schedules, total] = await scheduleRepository.findAndCount({
         where: whereClause,
-        relations: ["category", "reminders"],
+        relations: ["category", "reminders", "assignments"],
         order: { created_at: "DESC" },
         skip: offset,
         take: limit,
@@ -235,7 +235,7 @@ export class ScheduleService {
 
     const schedules = await scheduleRepository.find({
       where: whereClause,
-      relations: ["category", "reminders"],
+      relations: ["category", "reminders", "assignments"],
       order: { start_time: "DESC", deadline: "DESC", created_at: "DESC" },
     });
 

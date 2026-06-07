@@ -323,6 +323,26 @@ export class ScheduleController {
     }
   }
 
+
+  // Update assignee status
+  async updateAssigneeStatus(scheduleId: string, body: any) {
+    const { user_id, is_completed } = body;
+
+    if (!user_id || is_completed === undefined) {
+      return errorResponse(400, "user_id and is_completed required", "MISSING_FIELDS");
+    }
+
+    try {
+      const result = await scheduleService.updateAssigneeStatus(scheduleId, user_id, is_completed);
+      return successResponse(result, "Assignee status updated");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
   // Bulk delete
   async bulkDelete(body: any) {
     const { user_id, schedule_ids } = body;
