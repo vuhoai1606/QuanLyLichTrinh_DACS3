@@ -28,8 +28,9 @@ import com.bfy.schedule_app.utils.Localization
 
 @Composable
 fun LeaderboardScreen(
+    userId: String,
     onBackClick: () -> Unit,
-    viewModel: LeaderboardViewModel = viewModel { LeaderboardViewModel() }
+    viewModel: LeaderboardViewModel = viewModel(key = "leaderboard_$userId") { LeaderboardViewModel() }
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

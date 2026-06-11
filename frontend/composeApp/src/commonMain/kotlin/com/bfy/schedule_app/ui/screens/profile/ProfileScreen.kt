@@ -37,9 +37,9 @@ import androidx.compose.runtime.collectAsState
 import com.bfy.schedule_app.rememberBitmapFromUrlOrBase64
 
 @Composable
-fun ProfileScreen(onLogout: () -> Unit = {}) {
-    val viewModel: ProfileViewModel = viewModel { ProfileViewModel() }
-    val authViewModel: AuthViewModel = viewModel { AuthViewModel() }
+fun ProfileScreen(userId: String, onLogout: () -> Unit = {}) {
+    val viewModel: ProfileViewModel = viewModel(key = "profile_$userId") { ProfileViewModel() }
+    val authViewModel: AuthViewModel = viewModel(key = "auth_$userId") { AuthViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     val user = uiState.user
     val focusStats = uiState.focusStats

@@ -30,11 +30,12 @@ import com.bfy.schedule_app.utils.Localization
 
 @Composable
 fun GroupDetailScreen(
+    userId: String,
     groupId: String,
     onBackClick: () -> Unit,
     onTabSelected: (DashboardTab) -> Unit
 ) {
-    val viewModel: GroupDetailViewModel = viewModel { GroupDetailViewModel() }
+    val viewModel: GroupDetailViewModel = viewModel(key = "groupdetail_${userId}_${groupId}") { GroupDetailViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     
     var showAddTaskDialog by remember { mutableStateOf(false) }

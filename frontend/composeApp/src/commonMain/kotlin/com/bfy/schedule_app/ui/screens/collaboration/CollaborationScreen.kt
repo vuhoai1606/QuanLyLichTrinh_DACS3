@@ -26,8 +26,8 @@ import androidx.compose.runtime.collectAsState
 
 
 @Composable
-fun CollaborationScreen(onGroupClick: (String) -> Unit) {
-    val viewModel: CollaborationViewModel = viewModel { CollaborationViewModel() }
+fun CollaborationScreen(userId: String, onGroupClick: (String) -> Unit) {
+    val viewModel: CollaborationViewModel = viewModel(key = "collab_$userId") { CollaborationViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     
     var showCreateDialog by remember { mutableStateOf(false) }

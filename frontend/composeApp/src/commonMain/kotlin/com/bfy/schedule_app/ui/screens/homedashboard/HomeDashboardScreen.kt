@@ -83,6 +83,7 @@ fun HomeDashboardScreen(userId: String = "", onLogout: () -> Unit = {}) {
 
     if (showGroupDetail && selectedGroupId != null) {
         GroupDetailScreen(
+            userId = userId,
             groupId = selectedGroupId!!,
             onBackClick = { 
                 showGroupDetail = false 
@@ -182,12 +183,12 @@ fun HomeDashboardScreen(userId: String = "", onLogout: () -> Unit = {}) {
 
                 DashboardTab.CALENDAR -> CalendarScreen()
                 DashboardTab.FOCUS -> FocusModeScreen(viewModel = focusViewModel)
-                DashboardTab.COLLAB -> CollaborationScreen(onGroupClick = { id -> 
+                DashboardTab.COLLAB -> CollaborationScreen(userId = userId, onGroupClick = { id -> 
                     selectedGroupId = id
                     showGroupDetail = true 
                 })
-                DashboardTab.PROFILE -> ProfileScreen(onLogout = onLogout)
-                DashboardTab.LEADERBOARD -> com.bfy.schedule_app.ui.screens.leaderboard.LeaderboardScreen(onBackClick = { selectedTab = DashboardTab.HOME })
+                DashboardTab.PROFILE -> ProfileScreen(userId = userId, onLogout = onLogout)
+                DashboardTab.LEADERBOARD -> com.bfy.schedule_app.ui.screens.leaderboard.LeaderboardScreen(userId = userId, onBackClick = { selectedTab = DashboardTab.HOME })
             }
 
             if (showCreateNewItem) {
