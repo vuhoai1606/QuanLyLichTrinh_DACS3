@@ -73,7 +73,7 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
     ) {
         viewModelScope.launch {
             try {
-                repository.createSchedule(
+                val createdSchedule = repository.createSchedule(
                     com.bfy.schedule_app.data.remote.model.ScheduleDto(
                         id = "",
                         creator_id = _uiState.value.currentUser?.id ?: "",
@@ -97,6 +97,72 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
                         is_countdown_enabled = isCountdown
                     )
                 )
+
+                if (isCountdown) {
+                    val targetTime = deadline ?: endTime ?: startTime
+                    if (targetTime != null) {
+                        try {
+                            val targetMillis = kotlinx.datetime.Instant.parse(
+                                if (!targetTime.contains("T")) "${targetTime}T00:00:00Z" 
+                                else if (!targetTime.endsWith("Z") && !targetTime.contains("+")) "${targetTime}Z" 
+                                else targetTime
+                            ).toEpochMilliseconds()
+                            
+                            com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.startCountdown(
+                                createdSchedule.id, 
+                                createdSchedule.title, 
+                                targetMillis
+                            )
+                        } catch (e: Exception) { }
+                    }
+                }
+
+                if (reminders.isNotEmpty() || isAlarm) {
+                    val targetTime = deadline ?: startTime
+                    if (targetTime != null) {
+                        try {
+                            val targetMillis = kotlinx.datetime.Instant.parse(
+                                if (!targetTime.contains("T")) "${targetTime}T00:00:00Z" 
+                                else if (!targetTime.endsWith("Z") && !targetTime.contains("+")) "${targetTime}Z" 
+                                else targetTime
+                            ).toEpochMilliseconds()
+                            
+                            reminders.forEach { reminderKey ->
+                                val offsetMillis = com.bfy.schedule_app.platform.getReminderOffsetMillis(reminderKey)
+                                val triggerMillis = targetMillis - offsetMillis
+                                
+                                com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.scheduleAlarm(
+                                    "${createdSchedule.id}_$reminderKey",
+                                    createdSchedule.title,
+                                    createdSchedule.description ?: "Task reminder",
+                                    triggerMillis,
+                                    isAlarm
+                                )
+                            }
+                        } catch (e: Exception) { }
+                    }
+                } else if (isAlarm) {
+                    val targetTime = deadline ?: startTime
+                    if (targetTime != null) {
+                        try {
+                            val targetMillis = kotlinx.datetime.Instant.parse(
+                                if (!targetTime.contains("T")) "${targetTime}T00:00:00Z" 
+                                else if (!targetTime.endsWith("Z") && !targetTime.contains("+")) "${targetTime}Z" 
+                                else targetTime
+                            ).toEpochMilliseconds()
+                            
+                            val triggerMillis = targetMillis
+                            com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.scheduleAlarm(
+                                createdSchedule.id,
+                                createdSchedule.title,
+                                createdSchedule.description ?: "Task reminder",
+                                triggerMillis,
+                                isAlarm
+                            )
+                        } catch (e: Exception) { }
+                    }
+                }
+
                 loadTasks(groupId)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)

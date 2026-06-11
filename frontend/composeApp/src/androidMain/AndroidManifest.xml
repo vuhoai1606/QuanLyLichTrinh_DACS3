@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
             android:allowBackup="true"
@@ -30,10 +32,25 @@
             android:exported="false">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Focus sessions timing and management" />
         </service>
+
+        <service
+            android:name=".platform.ScheduleCountdownService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Schedule and task countdown timers" />
+        </service>
         
         <receiver
             android:name=".platform.FocusActionReceiver"
             android:exported="false" />
+            
+        <receiver
+            android:name=".platform.ScheduleAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.bfy.schedule_app.ACTION_SCHEDULE_ALARM" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

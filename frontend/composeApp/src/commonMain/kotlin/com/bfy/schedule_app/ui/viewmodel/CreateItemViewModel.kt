@@ -79,7 +79,62 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                     category_color = categoryColor,
                     is_countdown_enabled = isCountdown
                 )
-                repository.createSchedule(schedule)
+                val createdSchedule = repository.createSchedule(schedule)
+                
+                if (isCountdown) {
+                    val targetTime = deadline ?: endTime ?: startTime
+                    if (targetTime != null) {
+                        try {
+                            val targetMillis = kotlinx.datetime.Instant.parse(
+                                if (!targetTime.contains("T")) "${targetTime}T00:00:00Z" 
+                                else if (!targetTime.endsWith("Z") && !targetTime.contains("+")) "${targetTime}Z" 
+                                else targetTime
+                            ).toEpochMilliseconds()
+                            
+                            com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.startCountdown(
+                                createdSchedule.id, 
+                                createdSchedule.title, 
+                                targetMillis
+                            )
+                        } catch (e: Exception) { }
+                    }
+                }
+
+                if (reminders.isNotEmpty() || isAlarm) {
+                    val targetTime = deadline ?: startTime
+                    if (targetTime != null) {
+                        try {
+                            val targetMillis = kotlinx.datetime.Instant.parse(
+                                if (!targetTime.contains("T")) "${targetTime}T00:00:00Z" 
+                                else if (!targetTime.endsWith("Z") && !targetTime.contains("+")) "${targetTime}Z" 
+                                else targetTime
+                            ).toEpochMilliseconds()
+                            
+                            if (reminders.isNotEmpty()) {
+                                reminders.forEach { reminderKey ->
+                                    val offsetMillis = com.bfy.schedule_app.platform.getReminderOffsetMillis(reminderKey)
+                                    val triggerMillis = targetMillis - offsetMillis
+                                    com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.scheduleAlarm(
+                                        "${createdSchedule.id}_$reminderKey",
+                                        createdSchedule.title,
+                                        createdSchedule.description ?: "Task reminder",
+                                        triggerMillis,
+                                        isAlarm
+                                    )
+                                }
+                            } else {
+                                com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.scheduleAlarm(
+                                    createdSchedule.id,
+                                    createdSchedule.title,
+                                    createdSchedule.description ?: "Task reminder",
+                                    targetMillis,
+                                    isAlarm
+                                )
+                            }
+                        } catch (e: Exception) { }
+                    }
+                }
+
                 _uiState.value = CreateItemUiState(isSuccess = true)
             } catch (e: Exception) {
                 _uiState.value = CreateItemUiState(isLoading = false, error = e.message ?: "Unknown error occurred")
@@ -141,6 +196,65 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                     }
                 )
                 repository.updateSchedule(id, updates)
+
+                if (isCountdown) {
+                    val targetTime = deadline ?: endTime ?: startTime
+                    if (targetTime != null) {
+                        try {
+                            val targetMillis = kotlinx.datetime.Instant.parse(
+                                if (!targetTime.contains("T")) "${targetTime}T00:00:00Z" 
+                                else if (!targetTime.endsWith("Z") && !targetTime.contains("+")) "${targetTime}Z" 
+                                else targetTime
+                            ).toEpochMilliseconds()
+                            
+                            com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.startCountdown(
+                                id, 
+                                title, 
+                                targetMillis
+                            )
+                        } catch (e: Exception) { }
+                    }
+                } else {
+                    com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.stopCountdown(id)
+                }
+
+                // First cancel previous alarms (we can just cancel the main one, or let it get overwritten)
+                // Actually, best to just overwrite with new values.
+                if (reminders.isNotEmpty() || isAlarm) {
+                    val targetTime = deadline ?: startTime
+                    if (targetTime != null) {
+                        try {
+                            val targetMillis = kotlinx.datetime.Instant.parse(
+                                if (!targetTime.contains("T")) "${targetTime}T00:00:00Z" 
+                                else if (!targetTime.endsWith("Z") && !targetTime.contains("+")) "${targetTime}Z" 
+                                else targetTime
+                            ).toEpochMilliseconds()
+                            
+                            if (reminders.isNotEmpty()) {
+                                reminders.forEach { reminderKey ->
+                                    val offsetMillis = com.bfy.schedule_app.platform.getReminderOffsetMillis(reminderKey)
+                                    val triggerMillis = targetMillis - offsetMillis
+                                    com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.scheduleAlarm(
+                                        "${id}_$reminderKey",
+                                        title,
+                                        description,
+                                        triggerMillis,
+                                        isAlarm
+                                    )
+                                }
+                            } else {
+                                com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier?.scheduleAlarm(
+                                    id,
+                                    title,
+                                    description,
+                                    targetMillis,
+                                    isAlarm
+                                )
+                            }
+                        } catch (e: Exception) { }
+                    }
+                }
+
                 _uiState.value = CreateItemUiState(isSuccess = true)
             } catch (e: Exception) {
                 _uiState.value = CreateItemUiState(isLoading = false, error = e.message ?: "Update failed")

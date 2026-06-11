@@ -21,6 +21,8 @@ class MainActivity : ComponentActivity() {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
         }
 
+        com.bfy.schedule_app.platform.ScheduleNotifierProvider.notifier = com.bfy.schedule_app.platform.AndroidScheduleNotifier(this)
+
         setContent {
             App()
         }
