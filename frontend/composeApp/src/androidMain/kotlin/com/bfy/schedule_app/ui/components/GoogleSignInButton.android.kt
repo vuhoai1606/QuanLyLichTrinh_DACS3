@@ -31,7 +31,7 @@ actual fun GoogleSignInButton(
     val context = LocalContext.current
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("731620527212-10kqcai1ib22t3be0rimj085poa4h7ra.apps.googleusercontent.com")
+            .requestIdToken("430543234158-or99cp6a8okc9p1uj9tnen1amfm1ss91.apps.googleusercontent.com")
             .requestEmail()
             .build()
     }

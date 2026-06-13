@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -50,9 +51,33 @@ fun CalendarScreen() {
     var showEditScreen by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val platformContext = com.bfy.schedule_app.platform.rememberPlatformContext()
+    
+    val syncLauncher = com.bfy.schedule_app.platform.rememberGoogleAuthLauncher { token ->
+        if (token != null) {
+            viewModel.syncGoogleTwoWay(token)
+        } else {
+            viewModel.clearError() // Ensure no error on cancellation
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadSchedules()
+    }
+
+    if (uiState.error != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { viewModel.clearError() },
+            title = { Text("Thông báo", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text(uiState.error!!, color = Color(0xFFBBCAC5)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { viewModel.clearError() }) {
+                    Text("OK", color = PrimaryColor)
+                }
+            },
+            containerColor = Color(0xFF1E2023),
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 
     val headerTitle = when (viewType) {
@@ -102,6 +127,12 @@ fun CalendarScreen() {
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        androidx.compose.material.icons.Icons.Default.Refresh,
+                        contentDescription = "Sync",
+                        tint = PrimaryColor,
+                        modifier = Modifier.clickable { syncLauncher() }.padding(end = 12.dp)
+                    )
                     Text(
                         text = Localization.get("today") ?: "Today",
                         color = PrimaryColor,

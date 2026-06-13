@@ -8,7 +8,7 @@ import { logger } from "@utils/logger";
 import { APP_CONSTANTS } from "@constants/app.constants";
 
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || "731620527212-10kqcai1ib22t3be0rimj085poa4h7ra.apps.googleusercontent.com");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || "430543234158-or99cp6a8okc9p1uj9tnen1amfm1ss91.apps.googleusercontent.com");
 
 export class AuthController {
   
@@ -169,7 +169,7 @@ export class AuthController {
       // Verify token
       const ticket = await client.verifyIdToken({
         idToken: idToken,
-        audience: process.env.GOOGLE_CLIENT_ID || "731620527212-10kqcai1ib22t3be0rimj085poa4h7ra.apps.googleusercontent.com",
+        audience: process.env.GOOGLE_CLIENT_ID || "430543234158-or99cp6a8okc9p1uj9tnen1amfm1ss91.apps.googleusercontent.com",
       });
       
       const payload = ticket.getPayload();

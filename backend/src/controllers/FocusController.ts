@@ -4,14 +4,14 @@ import { successResponse, errorResponse, AppError } from "@utils/errors";
 export class FocusController {
   // Create focus session
   async createSession(body: any) {
-    const { user_id, duration_minutes, status } = body;
+    const { user_id, duration_minutes, status, is_strict_mode } = body;
 
     if (!user_id || !duration_minutes || !status) {
       return errorResponse(400, "user_id, duration_minutes and status required", "MISSING_FIELDS");
     }
 
     try {
-      const session = await focusService.createFocusSession(user_id, duration_minutes, status);
+      const session = await focusService.createFocusSession(user_id, duration_minutes, status, undefined, is_strict_mode);
       return new Response(
         JSON.stringify({
           status: 201,

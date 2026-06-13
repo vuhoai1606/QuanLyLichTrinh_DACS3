@@ -27,7 +27,10 @@ data class ScheduleDto(
     val group_id: String? = null,
     val assignees: List<String>? = null,
     val completed_assignees: Int? = null,
-    val total_assignees: Int? = null
+    val total_assignees: Int? = null,
+    val external_id: String? = null,
+    val external_source: String? = null,
+    val updated_at: String? = null
 )
 
 @Serializable
@@ -53,5 +56,7 @@ data class UpdateScheduleRequest(
     val category_color: String? = null,
     val assignments: List<ScheduleAssignmentDto> = emptyList(),
     val is_countdown_enabled: Boolean? = null,
-    val reminders: List<ReminderDto>? = null
+    val reminders: List<ReminderDto>? = null,
+    val external_id: String? = null,
+    val external_source: String? = null
 )

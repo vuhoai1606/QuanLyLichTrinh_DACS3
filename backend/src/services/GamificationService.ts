@@ -127,7 +127,7 @@ class GamificationService {
     }
   }
 
-  async updateUserRank(userId: string, newExp: number) {
+  async updateUserStreakAndRank(userId: string, newExp: number) {
     try {
       const userRepo = AppDataSource.getRepository("User");
       const rankRepo = AppDataSource.getRepository("Rank");
@@ -135,7 +135,37 @@ class GamificationService {
       const user = await userRepo.findOne({ where: { id: userId } });
       if (!user) return null;
 
-      const newTotalExp = user.total_exp + newExp;
+      // Handle streak logic
+      const now = new Date();
+      let currentStreak = user.current_streak || 0;
+      let bestStreak = user.best_streak || 0;
+      
+      if (user.last_active_date) {
+        const lastActive = new Date(user.last_active_date);
+        const lastActiveDateOnly = new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate());
+        const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        const diffDays = Math.floor((nowDateOnly.getTime() - lastActiveDateOnly.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+          currentStreak++; // Continued the streak
+        } else if (diffDays > 1) {
+          currentStreak = 1; // Streak broken, reset
+        } // If diffDays === 0, it means multiple sessions today, do not increment streak.
+      } else {
+        currentStreak = 1; // First session ever
+      }
+      
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+      }
+
+      // Bonus EXP for streak! +5% per streak day up to +50% (10 days)
+      const streakBonusPercentage = Math.min((currentStreak - 1) * 0.05, 0.5);
+      const bonusExp = Math.round(newExp * streakBonusPercentage);
+      const totalNewExp = newExp + bonusExp;
+
+      const newTotalExp = user.total_exp + totalNewExp;
 
       // Find appropriate rank based on EXP
       const newRank = await rankRepo
@@ -152,13 +182,22 @@ class GamificationService {
           {
             total_exp: newTotalExp,
             current_rank: newRank.rank_name,
+            current_streak: currentStreak,
+            best_streak: bestStreak,
+            last_active_date: now
           }
         );
       }
 
-      return { total_exp: newTotalExp, current_rank: newRank?.rank_name };
+      return { 
+        total_exp: newTotalExp, 
+        current_rank: newRank?.rank_name, 
+        current_streak: currentStreak,
+        best_streak: bestStreak,
+        bonus_exp: bonusExp
+      };
     } catch (error) {
-      console.error("❌ Update user rank error:", error);
+      console.error("❌ Update user rank & streak error:", error);
       throw error;
     }
   }

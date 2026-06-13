@@ -8,5 +8,12 @@ data class ProductivityStatsDto(
     val completionRate: Float,
     val dailyTrend: Map<String, Int>,
     val totalFocusMinutes: Int,
-    val completedTasksCount: Int
+    val completedTasksCount: Int,
+    val goldenHours: List<GoldenHourDto> = emptyList()
+)
+
+@Serializable
+data class GoldenHourDto(
+    val hour: Int,
+    val minutes: Int
 )

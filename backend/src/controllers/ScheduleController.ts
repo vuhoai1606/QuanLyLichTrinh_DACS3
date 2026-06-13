@@ -1,6 +1,7 @@
 import scheduleService from "@services/ScheduleService";
 import dashboardService from "@services/DashboardService";
 import { successResponse, errorResponse, AppError } from "@utils/errors";
+import calendarSyncService from "@services/CalendarSyncService";
 
 export class ScheduleController {
   // Get all schedules for user
@@ -422,6 +423,25 @@ export class ScheduleController {
     try {
       const progress = await scheduleService.getWeeklyGoalProgress(userId);
       return successResponse(progress, "Weekly goal progress");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return errorResponse(error.status, error.message, error.code);
+      }
+      return errorResponse(500, "Internal server error");
+    }
+  }
+
+  // Sync external calendar
+  async syncCalendar(body: any) {
+    const { user_id, events } = body;
+
+    if (!user_id || !events || !Array.isArray(events)) {
+      return errorResponse(400, "user_id and events array required", "MISSING_FIELDS");
+    }
+
+    try {
+      const result = await calendarSyncService.importExternalEvents(user_id, events);
+      return successResponse(result, "Calendar synced successfully");
     } catch (error) {
       if (error instanceof AppError) {
         return errorResponse(error.status, error.message, error.code);

@@ -47,6 +47,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation("com.google.android.gms:play-services-auth:20.7.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
             implementation(libs.ktor.client.okhttp)
 
         }
@@ -97,21 +98,12 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    signingConfigs {
-        create("debugShared") {
-            storeFile = file("shared-debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-    }
-
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
         }
         getByName("debug") {
-            signingConfig = signingConfigs.getByName("debugShared")
+            
         }
     }
     compileOptions {

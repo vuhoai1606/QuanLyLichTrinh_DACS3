@@ -12,8 +12,9 @@ export class FocusService {
   async createFocusSession(
     userId: string,
     duration_minutes: number,
-    status: "COMPLETED" | "FAILED" = "COMPLETED",
-    title?: string
+    status: "COMPLETED" | "FAILED" | "PAUSED" = "COMPLETED",
+    title?: string,
+    is_strict_mode: boolean = false
   ): Promise<any> {
     const focusSessionRepository = AppDataSource.getRepository("FocusSession");
     const userRepository = AppDataSource.getRepository("User");
@@ -23,33 +24,42 @@ export class FocusService {
       user_id: userId,
       duration_minutes,
       status,
+      is_strict_mode
     });
 
     if (!validation.valid) {
       throw new AppError(400, validation.errors.join(", "), "INVALID_INPUT");
     }
 
-    const exp_earned = status === "COMPLETED" ? Math.round(duration_minutes * EXP_MULTIPLIER) : 0;
+    let exp_earned = status === "COMPLETED" ? Math.round(duration_minutes * EXP_MULTIPLIER) : 0;
+    
+    // Strict mode bonus logic - if failed, 0 EXP. If completed, maybe bonus!
+    if (status === "COMPLETED" && is_strict_mode) {
+      exp_earned = Math.round(exp_earned * 1.2); // 20% bonus for strict mode
+    }
 
     const session = focusSessionRepository.create({
       id: generateUUID(),
       user_id: userId,
       duration_minutes,
       status,
+      is_strict_mode,
       exp_earned,
       created_at: new Date(),
     });
 
     const savedSession = await focusSessionRepository.save(session);
 
+    let streakInfo = null;
     // Update user XP if session completed
     if (status === "COMPLETED") {
       const gamificationService = require("./GamificationService").default;
-      await gamificationService.updateUserRank(userId, exp_earned);
+      streakInfo = await gamificationService.updateUserStreakAndRank(userId, exp_earned);
     }
 
     return {
       ...savedSession,
+      streak_info: streakInfo,
       message: `Focus session ${status === "COMPLETED" ? "completed" : "recorded"}. ${exp_earned} XP earned!`,
     };
   }

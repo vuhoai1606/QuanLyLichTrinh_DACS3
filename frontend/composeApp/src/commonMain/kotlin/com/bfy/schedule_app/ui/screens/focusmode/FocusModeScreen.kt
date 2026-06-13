@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.bfy.schedule_app.ui.theme.*
 import com.bfy.schedule_app.data.remote.model.*
 import com.bfy.schedule_app.ui.viewmodel.FocusViewModel
+import com.bfy.schedule_app.ui.viewmodel.AnalyticsViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
@@ -40,6 +42,8 @@ import com.bfy.schedule_app.utils.Localization
 @Composable
 fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) {
     val uiState by viewModel.uiState.collectAsState()
+    val analyticsViewModel: AnalyticsViewModel = viewModel { AnalyticsViewModel() }
+    val analyticsState by analyticsViewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val platformContext = com.bfy.schedule_app.platform.rememberPlatformContext()
@@ -284,6 +288,61 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                         Text(text = "${uiState.stats?.total_minutes ?: 0}", color = Color(0xFFE2E2E6), fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(text = Localization.get("mins"), color = Color(0xFFBBCAC5), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+            
+            if (!uiState.isRunning) {
+                Spacer(modifier = Modifier.height(24.dp))
+                // Analytics / Golden Hours Section
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1E2023))
+                        .border(1.dp, Color(0xFF59DBC7).copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFE2A03F), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = "Khung giờ vàng", color = Color(0xFFE2E2E6), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                        IconButton(onClick = { analyticsViewModel.loadStats() }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Refresh", tint = Color(0xFF59DBC7))
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    if (analyticsState.isLoading) {
+                        CircularProgressIndicator(color = Color(0xFF59DBC7), modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally))
+                    } else if (analyticsState.stats?.goldenHours?.isNotEmpty() == true) {
+                        val topGoldenHour = analyticsState.stats!!.goldenHours.first()
+                        Text(
+                            text = "${topGoldenHour.hour}:00 - ${topGoldenHour.hour + 1}:00",
+                            color = Color(0xFF59DBC7),
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Bạn tập trung tốt nhất vào giờ này! (Tổng cộng ${topGoldenHour.minutes} phút)",
+                            color = Color(0xFFBBCAC5),
+                            fontSize = 13.sp
+                        )
+                    } else {
+                        Text(
+                            text = "Chưa có đủ dữ liệu. Hãy hoàn thành ít nhất 1 phiên tập trung để tính toán!",
+                            color = Color(0xFF869490),
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }

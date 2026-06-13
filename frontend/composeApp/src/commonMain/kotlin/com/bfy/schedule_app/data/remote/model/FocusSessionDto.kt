@@ -8,6 +8,7 @@ data class FocusSessionDto(
     val user_id: String,
     val duration_minutes: Int,
     val status: String,
+    val is_strict_mode: Boolean = false,
     val exp_earned: Int,
     val created_at: String
 )

@@ -48,6 +48,15 @@ export class User {
   @Column({ type: "varchar", default: "Rookie" })
   current_rank: string;
 
+  @Column({ type: "integer", default: 0 })
+  current_streak: number;
+
+  @Column({ type: "integer", default: 0 })
+  best_streak: number;
+
+  @Column({ type: "timestamp", nullable: true })
+  last_active_date: Date;
+
   @Column({ type: "boolean", default: true })
   is_active: boolean;
 

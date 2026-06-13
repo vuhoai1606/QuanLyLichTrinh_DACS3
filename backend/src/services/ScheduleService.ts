@@ -210,6 +210,9 @@ export class ScheduleService {
           category_name: s.category?.name ?? null,
           category_color: s.category?.hex_color ?? null,
           reminders: s.reminders ?? [],
+          external_id: s.external_id,
+          external_source: s.external_source,
+          updated_at: s.updated_at,
         })),
         total,
         limit,
@@ -284,6 +287,9 @@ export class ScheduleService {
       recurrence_type: schedule.recurrence_type,
       is_countdown_enabled: schedule.is_countdown_enabled,
       created_at: schedule.created_at,
+      external_id: schedule.external_id,
+      external_source: schedule.external_source,
+      updated_at: schedule.updated_at,
     };
   }
 
@@ -313,6 +319,27 @@ export class ScheduleService {
       resolvedCategoryId = category.id;
     } else if (otherUpdates.category_name === null) {
       resolvedCategoryId = null;
+    }
+
+    let timeChanged = false;
+    if (otherUpdates.start_time !== undefined) {
+      const newTime = otherUpdates.start_time ? new Date(otherUpdates.start_time).getTime() : null;
+      const oldTime = schedule.start_time ? new Date(schedule.start_time).getTime() : null;
+      if (newTime !== oldTime) timeChanged = true;
+    }
+    if (otherUpdates.end_time !== undefined) {
+      const newTime = otherUpdates.end_time ? new Date(otherUpdates.end_time).getTime() : null;
+      const oldTime = schedule.end_time ? new Date(schedule.end_time).getTime() : null;
+      if (newTime !== oldTime) timeChanged = true;
+    }
+    if (otherUpdates.deadline !== undefined) {
+      const newTime = otherUpdates.deadline ? new Date(otherUpdates.deadline).getTime() : null;
+      const oldTime = schedule.deadline ? new Date(schedule.deadline).getTime() : null;
+      if (newTime !== oldTime) timeChanged = true;
+    }
+
+    if (timeChanged && oldStatus === "DONE") {
+      otherUpdates.status = "PENDING";
     }
 
     Object.assign(schedule, { ...otherUpdates, category_id: resolvedCategoryId });

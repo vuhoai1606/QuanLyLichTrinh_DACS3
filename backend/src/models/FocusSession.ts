@@ -12,8 +12,11 @@ export class FocusSession {
   @Column({ type: "integer" })
   duration_minutes: number;
 
-  @Column({ type: "varchar", enum: ["COMPLETED", "FAILED"] })
-  status: "COMPLETED" | "FAILED";
+  @Column({ type: "varchar", enum: ["COMPLETED", "FAILED", "PAUSED"] })
+  status: "COMPLETED" | "FAILED" | "PAUSED";
+
+  @Column({ type: "boolean", default: false })
+  is_strict_mode: boolean;
 
   @Column({ type: "integer", default: 0 })
   exp_earned: number;

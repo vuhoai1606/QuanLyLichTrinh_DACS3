@@ -71,7 +71,7 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
         _uiState.update { it.copy(isRunning = false, timeLeft = target * 60) }
         viewModelScope.launch {
             try {
-                repository.createFocusSession(target, "FAILED")
+                repository.createFocusSession(target, "FAILED", isStrictMode = true)
                 loadFocusData()
             } catch (e: Exception) {}
         }
@@ -83,7 +83,7 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
         _uiState.update { it.copy(isRunning = false, timeLeft = target * 60) }
         viewModelScope.launch {
             try {
-                repository.createFocusSession(target, "COMPLETED")
+                repository.createFocusSession(target, "COMPLETED", isStrictMode = true)
                 loadFocusData()
             } catch (e: Exception) {}
         }

@@ -16,7 +16,7 @@ export class AnalyticsService {
     // Focus minutes per day for heatmap
     const sessions = await focusRepo.find({
       where: {
-        userId,
+        user_id: userId,
         created_at: Between(startOfMonth, endOfMonth)
       }
     });
@@ -55,10 +55,26 @@ export class AnalyticsService {
       }
     });
 
+    // Golden hours calculation
+    const hourMap: Record<number, number> = {};
+    for (let i = 0; i < 24; i++) hourMap[i] = 0;
+    
+    sessions.forEach(s => {
+      const hour = DateTime.fromJSDate(s.created_at).hour;
+      hourMap[hour] += s.duration_minutes;
+    });
+    
+    const goldenHours = Object.keys(hourMap)
+      .map(hour => ({ hour: parseInt(hour), minutes: hourMap[parseInt(hour)] }))
+      .sort((a, b) => b.minutes - a.minutes)
+      .slice(0, 3)
+      .filter(h => h.minutes > 0);
+
     return {
       focusHeatmap,
       completionRate,
       dailyTrend,
+      goldenHours,
       totalFocusMinutes: sessions.reduce((acc, s) => acc + s.duration_minutes, 0),
       completedTasksCount: completedTasks
     };

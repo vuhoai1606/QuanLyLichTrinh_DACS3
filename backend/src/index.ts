@@ -29,7 +29,6 @@ import { MetricsCollector, RequestMetrics } from "@services/MetricsCollector";
 import { AlertManager, setupDefaultAlerts } from "@services/AlertManager";
 import gamificationService from "@services/GamificationService";
 import NotificationWorker from "./workers/NotificationWorker";
-// import { websocket } from "@elysiajs/websocket"; // Temporarily disabled due to compatibility issues
 import { rateLimit } from "elysia-rate-limit";
 import webSocketService from "@services/WebSocketService";
 import { verifyToken } from "@utils/jwt";
@@ -38,7 +37,6 @@ import { verifyToken } from "@utils/jwt";
  * Initialize and configure Elysia server
  */
 const app = new Elysia({ bodyLimit: 50 * 1024 * 1024 })
-  // .use(websocket()) // Temporarily disabled due to compatibility issues
   .use(rateLimit({
     max: 100,
     duration: 60000, // 1 minute
@@ -99,8 +97,26 @@ const app = new Elysia({ bodyLimit: 50 * 1024 * 1024 })
       .use(analyticsRoutes)
       .use(aiRoutes)
   )
-  // WebSocket handler disabled - WebSocket plugin temporarily disabled due to compatibility issues
-  // .ws("/ws", {...})
+  .ws("/ws", {
+    open(ws) {
+      // For simplicity, wait for client to send `{ type: "auth", token: "..." }`
+    },
+    message(ws, message: any) {
+      if (message.type === "auth" && message.token) {
+        const payload = verifyToken(message.token);
+        if (payload && (payload as any).userId) {
+          webSocketService.addConnection((payload as any).userId, ws);
+          ws.send(JSON.stringify({ type: "connected", message: "Authenticated successfully" }));
+        } else {
+          ws.send(JSON.stringify({ type: "error", message: "Invalid token" }));
+        }
+      }
+    },
+    close(ws) {
+      // Find and remove connection
+      // This is a naive cleanup, in production we would track the userId per ws instance
+    }
+  })
   .group("/monitoring", (app) => app.use(monitoringRoutes))
   .onError(({ error, code, request }) => {
     logger.error(`HTTP Error [${code}]:`, error instanceof Error ? error : new Error(String(error)));

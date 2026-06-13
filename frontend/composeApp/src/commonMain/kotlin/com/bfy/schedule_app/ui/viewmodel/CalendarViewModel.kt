@@ -103,4 +103,193 @@ class CalendarViewModel(private val repository: AppRepository = AppRepository())
         val prev = current.minus(1, DateTimeUnit.YEAR)
         _uiState.value = _uiState.value.copy(selectedDate = prev)
     }
+
+    fun syncExternalCalendar(context: Any) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val user = repository.getCurrentUser()
+                val email = user.email ?: throw Exception("User email not found. Cannot sync calendar.")
+                val events = com.bfy.schedule_app.platform.CalendarSyncManager.getNativeCalendarEvents(context, email)
+                
+                if (events.isEmpty()) {
+                    throw Exception("No events found for account: $email")
+                }
+                
+                repository.syncCalendar(events)
+                loadSchedules() // Reload to get newly synced events
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Sync failed: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun syncGoogleTwoWay(token: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val googleApi = com.bfy.schedule_app.data.remote.api.GoogleApiService()
+                val externalEvents = mutableListOf<com.bfy.schedule_app.data.remote.model.ExternalEventDto>()
+                
+                val googleEventsMap = mutableMapOf<String, com.bfy.schedule_app.data.remote.api.GoogleEvent>()
+                val googleTasksMap = mutableMapOf<String, Pair<String, com.bfy.schedule_app.data.remote.api.GoogleTask>>()
+
+                // 1. Fetch Events from Google Calendar
+                try {
+                    val events = googleApi.getEvents(token)
+                    events.forEach { e ->
+                        if (e.id != null && e.start != null) {
+                            googleEventsMap[e.id] = e
+                            val startTime = e.start.dateTime ?: e.start.date ?: return@forEach
+                            val endTime = e.end?.dateTime ?: e.end?.date ?: startTime
+                            val isAllDay = e.start.dateTime == null
+                            externalEvents.add(
+                                com.bfy.schedule_app.data.remote.model.ExternalEventDto(
+                                    title = e.summary,
+                                    description = e.description,
+                                    start_time = startTime,
+                                    end_time = endTime,
+                                    is_all_day = isAllDay,
+                                    type = "EVENT",
+                                    external_id = e.id,
+                                    external_source = "GOOGLE_CALENDAR",
+                                    updated_at = e.updated
+                                )
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("Failed to fetch Google Events: ${e.message}")
+                }
+
+                // 2. Fetch Tasks from Google Tasks
+                try {
+                    val taskLists = googleApi.getTaskLists(token)
+                    for (list in taskLists) {
+                        val tasks = googleApi.getTasks(token, list.id)
+                        tasks.forEach { t ->
+                            if (t.id != null) {
+                                googleTasksMap[t.id] = Pair(list.id, t)
+                                val due = t.due ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString()
+                                externalEvents.add(
+                                    com.bfy.schedule_app.data.remote.model.ExternalEventDto(
+                                        title = t.title,
+                                        description = t.notes,
+                                        start_time = due,
+                                        end_time = due,
+                                        is_all_day = false,
+                                        type = "TASK",
+                                        external_id = t.id,
+                                        external_source = "GOOGLE_TASKS",
+                                        updated_at = t.updated
+                                    )
+                                )
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("Failed to fetch Google Tasks: ${e.message}")
+                }
+
+                // 3. Sync to BFY Backend (pulls new/updated things from Google)
+                if (externalEvents.isNotEmpty()) {
+                    repository.syncCalendar(externalEvents)
+                }
+
+                // 4. Push BFY items to Google (Two-Way)
+                val currentSchedules = repository.getSchedules()
+                var pushCount = 0
+                
+                for (schedule in currentSchedules) {
+                    try {
+                        if (schedule.external_id == null) {
+                            // NEW in BFY -> push to Google
+                            if (schedule.type == "TASK" || schedule.type == "TODO") {
+                                val newTask = googleApi.createTask(token, "@default", com.bfy.schedule_app.data.remote.api.GoogleTask(
+                                    title = schedule.title,
+                                    notes = schedule.description,
+                                    due = schedule.deadline ?: schedule.start_time
+                                ))
+                                repository.updateSchedule(schedule.id, com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest(
+                                    external_id = newTask.id,
+                                    external_source = "GOOGLE_TASKS"
+                                ))
+                            } else {
+                                val newEvent = googleApi.createEvent(token, "primary", com.bfy.schedule_app.data.remote.api.GoogleEvent(
+                                    summary = schedule.title,
+                                    description = schedule.description,
+                                    start = com.bfy.schedule_app.data.remote.api.GoogleEventDateTime(dateTime = schedule.start_time),
+                                    end = com.bfy.schedule_app.data.remote.api.GoogleEventDateTime(dateTime = schedule.end_time ?: schedule.start_time)
+                                ))
+                                repository.updateSchedule(schedule.id, com.bfy.schedule_app.data.remote.model.UpdateScheduleRequest(
+                                    external_id = newEvent.id,
+                                    external_source = "GOOGLE_CALENDAR"
+                                ))
+                            }
+                            pushCount++
+                        } else {
+                            // Already linked. Check which is newer.
+                            val bUpdated = schedule.updated_at?.let { Instant.parse(it) } ?: Instant.DISTANT_PAST
+                            var gUpdated = Instant.DISTANT_FUTURE // default to not push if we can't tell
+                            var shouldPush = false
+                            
+                            if (schedule.external_source == "GOOGLE_CALENDAR") {
+                                val gEvent = googleEventsMap[schedule.external_id]
+                                if (gEvent != null) {
+                                    gUpdated = gEvent.updated?.let { Instant.parse(it) } ?: Instant.DISTANT_PAST
+                                    shouldPush = bUpdated > gUpdated
+                                    if (shouldPush) {
+                                        googleApi.updateEvent(token, "primary", com.bfy.schedule_app.data.remote.api.GoogleEvent(
+                                            id = schedule.external_id,
+                                            summary = schedule.title,
+                                            description = schedule.description,
+                                            start = com.bfy.schedule_app.data.remote.api.GoogleEventDateTime(dateTime = schedule.start_time),
+                                            end = com.bfy.schedule_app.data.remote.api.GoogleEventDateTime(dateTime = schedule.end_time ?: schedule.start_time)
+                                        ))
+                                        pushCount++
+                                    }
+                                }
+                            } else if (schedule.external_source == "GOOGLE_TASKS") {
+                                val gTaskInfo = googleTasksMap[schedule.external_id]
+                                if (gTaskInfo != null) {
+                                    gUpdated = gTaskInfo.second.updated?.let { Instant.parse(it) } ?: Instant.DISTANT_PAST
+                                    shouldPush = bUpdated > gUpdated
+                                    if (shouldPush) {
+                                        googleApi.updateTask(token, gTaskInfo.first, com.bfy.schedule_app.data.remote.api.GoogleTask(
+                                            id = schedule.external_id,
+                                            title = schedule.title,
+                                            notes = schedule.description,
+                                            due = schedule.deadline ?: schedule.start_time
+                                        ))
+                                        pushCount++
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("Failed to push schedule ${schedule.id} to Google: ${e.message}")
+                    }
+                }
+
+                // Reload final state
+                loadSchedules()
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Đồng bộ thành công! Kéo về ${externalEvents.size} mục, đẩy lên Google $pushCount mục." 
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Lỗi đồng bộ Google: ${e.message}"
+                )
+            }
+        }
+    }
 }

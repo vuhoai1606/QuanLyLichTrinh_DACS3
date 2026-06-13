@@ -271,13 +271,14 @@ class AppRepository {
         return response.data ?: emptyList()
     }
 
-    suspend fun createFocusSession(durationMinutes: Int, status: String): FocusSessionDto {
+    suspend fun createFocusSession(durationMinutes: Int, status: String, isStrictMode: Boolean = false): FocusSessionDto {
         val currentUser = getCurrentUser()
         val response: ApiResponse<FocusSessionDto> = client.post(ApiClient.getUrl("/focus/sessions")) {
             setBody(mapOf(
                 "user_id" to currentUser.id,
                 "duration_minutes" to durationMinutes,
-                "status" to status
+                "status" to status,
+                "is_strict_mode" to isStrictMode
             ))
             contentType(ContentType.Application.Json)
             if (ApiClient.authToken != null) {
@@ -289,6 +290,36 @@ class AppRepository {
             return response.data
         } else {
             throw Exception(response.message ?: "Failed to record focus session")
+        }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class SyncCalendarRequest(
+        val user_id: String,
+        val events: List<ExternalEventDto>
+    )
+
+    @kotlinx.serialization.Serializable
+    data class SyncCalendarResponse(
+        val success: Boolean,
+        val syncedCount: Int,
+        val message: String
+    )
+
+    suspend fun syncCalendar(events: List<ExternalEventDto>): SyncCalendarResponse {
+        val currentUser = getCurrentUser()
+        val response: ApiResponse<SyncCalendarResponse> = client.post(ApiClient.getUrl("/schedule/sync-calendar")) {
+            setBody(SyncCalendarRequest(currentUser.id, events))
+            contentType(ContentType.Application.Json)
+            if (ApiClient.authToken != null) {
+                header("Authorization", "Bearer ${ApiClient.authToken}")
+            }
+        }.body()
+
+        if (response.success == true && response.data != null) {
+            return response.data
+        } else {
+            throw Exception(response.message ?: "Failed to sync calendar")
         }
     }
 

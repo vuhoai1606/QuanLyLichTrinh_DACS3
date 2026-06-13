@@ -63,6 +63,12 @@ export class Schedule {
   @Column({ type: "boolean", default: false })
   is_countdown_enabled: boolean;
 
+  @Column({ type: "varchar", nullable: true })
+  external_id: string;
+
+  @Column({ type: "varchar", nullable: true })
+  external_source: string;
+
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
 

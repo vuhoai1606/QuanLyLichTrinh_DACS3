@@ -80,6 +80,10 @@ class ValidationService {
       errors.push(`Status must be one of: ${validStatuses.join(", ")}`);
     }
 
+    if (data.is_strict_mode !== undefined && typeof data.is_strict_mode !== "boolean") {
+      errors.push("is_strict_mode must be a boolean");
+    }
+
     return {
       valid: errors.length === 0,
       errors,
