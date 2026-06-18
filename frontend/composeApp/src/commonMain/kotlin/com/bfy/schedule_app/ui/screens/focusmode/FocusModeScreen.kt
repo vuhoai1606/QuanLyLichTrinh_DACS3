@@ -64,6 +64,13 @@ fun FocusModeScreen(viewModel: FocusViewModel = viewModel { FocusViewModel() }) 
                 if (com.bfy.schedule_app.platform.FocusSessionSharedState.isGiveUpTriggered) {
                     com.bfy.schedule_app.platform.FocusSessionSharedState.isGiveUpTriggered = false
                     viewModel.giveUpSession()
+                } else if (com.bfy.schedule_app.platform.FocusSessionSharedState.isCompletedTriggered) {
+                    com.bfy.schedule_app.platform.FocusSessionSharedState.isCompletedTriggered = false
+                    viewModel.sessionCompleted()
+                } else if (com.bfy.schedule_app.platform.FocusSessionSharedState.timeLeftSeconds > 0) {
+                    val savedTime = com.bfy.schedule_app.platform.FocusSessionSharedState.timeLeftSeconds
+                    com.bfy.schedule_app.platform.FocusSessionSharedState.timeLeftSeconds = -1
+                    viewModel.updateTimeLeft(savedTime)
                 }
             }
         }

@@ -27,6 +27,16 @@ class MainActivity : ComponentActivity() {
             App()
         }
     }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        com.bfy.schedule_app.platform.FocusSessionSharedState.isUserLeaving = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        com.bfy.schedule_app.platform.FocusSessionSharedState.isUserLeaving = false
+    }
 }
 
 @Preview

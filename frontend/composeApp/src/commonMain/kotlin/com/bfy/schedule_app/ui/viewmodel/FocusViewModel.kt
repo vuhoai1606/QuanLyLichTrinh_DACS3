@@ -110,6 +110,12 @@ class FocusViewModel(private val repository: AppRepository = AppRepository()) : 
         _uiState.update { it.copy(timeLeft = _uiState.value.targetMinutes * 60) }
     }
 
+    fun updateTimeLeft(seconds: Int) {
+        timerJob?.cancel()
+        _uiState.update { it.copy(timeLeft = seconds) }
+        startTimer()
+    }
+
     fun setFocusTime(minutes: Int) {
         val validMinutes = if (minutes < 1) 1 else if (minutes > 1440) 1440 else minutes // Limit between 1 min and 24h
         if (!_uiState.value.isRunning) {

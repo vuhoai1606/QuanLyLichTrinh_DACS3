@@ -57,7 +57,23 @@ actual fun GoogleSignInButton(
                 onTokenReceived(null)
             }
         } else {
-            android.widget.Toast.makeText(context, "Google Sign In Canceled or Failed. Result Code: " + result.resultCode, android.widget.Toast.LENGTH_LONG).show()
+            var errorDetail = ""
+            if (result.data != null) {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                try {
+                    task.getResult(ApiException::class.java)
+                } catch (e: ApiException) {
+                    val statusStr = try {
+                        com.google.android.gms.common.api.CommonStatusCodes.getStatusCodeString(e.statusCode)
+                    } catch (ex: Exception) {
+                        "UNKNOWN"
+                    }
+                    errorDetail = "\nError Code: ${e.statusCode} ($statusStr)"
+                } catch (e: Exception) {
+                    errorDetail = "\nException: ${e.message}"
+                }
+            }
+            android.widget.Toast.makeText(context, "Google Sign In Canceled or Failed. Result Code: ${result.resultCode}$errorDetail", android.widget.Toast.LENGTH_LONG).show()
             onTokenReceived(null)
         }
     }

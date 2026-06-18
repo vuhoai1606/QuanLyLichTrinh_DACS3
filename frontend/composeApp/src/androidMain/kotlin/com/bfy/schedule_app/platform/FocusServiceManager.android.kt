@@ -11,9 +11,15 @@ import androidx.compose.ui.platform.LocalContext
 actual object FocusServiceManager {
     actual fun startFocusService(context: Any, targetMinutes: Int, timeLeftSeconds: Int) {
         val ctx = context as Context
+        val powerManager = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val isInteractive = powerManager.isInteractive
+        val isUserLeaving = FocusSessionSharedState.isUserLeaving
+        val shouldTriggerWarning = isUserLeaving || isInteractive
+
         val intent = Intent(ctx, FocusForegroundService::class.java).apply {
             putExtra("targetMinutes", targetMinutes)
             putExtra("timeLeftSeconds", timeLeftSeconds)
+            putExtra("shouldTriggerWarning", shouldTriggerWarning)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ctx.startForegroundService(intent)
