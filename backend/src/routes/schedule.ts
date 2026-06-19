@@ -57,7 +57,19 @@ export const scheduleRoutes = new Elysia({ prefix: "/schedule" })
   .get("/dashboard/weekly", async ({ query }: { query: any }) => scheduleController.getWeeklyStats(query.user_id), { tags: ["Dashboard"] })
   .get("/dashboard/monthly", async ({ query }: { query: any }) => scheduleController.getMonthlyStats(query.user_id), { tags: ["Dashboard"] })
   .get("/dashboard/weekly-goal", async ({ query }: { query: any }) => scheduleController.getWeeklyGoalProgress(query.user_id), { tags: ["Dashboard"] })
-  .get("/search/:searchQuery", async ({ params, query }: { params: any; query: any }) => scheduleController.searchSchedules(params.searchQuery, query.user_id), { tags: ["Schedule"] })
+  .get(
+    "/search/:searchQuery",
+    async (ctx: AuthContext & { params: any }) => {
+      const token = extractToken(ctx.request.headers.get("authorization") ?? undefined);
+      if (!token) return errorResponse(401, "Missing authorization token", "MISSING_TOKEN");
+      const payload = verifyToken(token);
+      if (!payload) return errorResponse(401, "Invalid or expired token", "INVALID_TOKEN");
+      const userId = (payload as any).userId;
+      if (!userId) return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
+      return scheduleController.searchSchedules(ctx.params.searchQuery, userId);
+    },
+    { tags: ["Schedule"] }
+  )
   .get("/export/:format", async ({ params, query }: { params: any; query: any }) => scheduleController.exportSchedules(query.user_id, params.format), { tags: ["Schedule"] })
   .post("/:id/clone", async ({ params, query }: { params: any; query: any }) => scheduleController.cloneSchedule(params.id, query.user_id), { tags: ["Schedule"] })
   .put("/:id/status", async ({ params, body }: { params: any; body: any }) => scheduleController.updateStatus(params.id, body), { tags: ["Schedule"] })

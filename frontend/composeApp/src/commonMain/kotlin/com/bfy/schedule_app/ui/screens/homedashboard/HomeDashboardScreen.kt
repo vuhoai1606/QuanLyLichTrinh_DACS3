@@ -65,6 +65,7 @@ fun HomeDashboardScreen(userId: String = "", onLogout: () -> Unit = {}) {
     var searchQuery by remember { mutableStateOf("") }
     var showActionDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
+    var isSearchMode by remember { mutableStateOf(false) }
     
     val viewModel: HomeViewModel = viewModel(key = "home_$userId") { HomeViewModel() }
     val focusViewModel: com.bfy.schedule_app.ui.viewmodel.FocusViewModel = viewModel(key = "focus_$userId") { com.bfy.schedule_app.ui.viewmodel.FocusViewModel() }
@@ -109,14 +110,25 @@ fun HomeDashboardScreen(userId: String = "", onLogout: () -> Unit = {}) {
                         scope.launch { scaffoldState.drawerState.open() } 
                     }
                 },
-                onNotificationClick = {
+                onSearchClick = {
                     if (!(focusUiState.isRunning && selectedTab == DashboardTab.FOCUS)) {
-                        showNotificationsDialog = true
-                        notificationViewModel.loadNotifications()
+                        isSearchMode = true
+                        selectedTab = DashboardTab.HOME // Switch to home to see results
                     }
                 },
                 onProfileClick = { handleTabSelection(DashboardTab.PROFILE) },
-                enabled = !(focusUiState.isRunning && selectedTab == DashboardTab.FOCUS)
+                enabled = !(focusUiState.isRunning && selectedTab == DashboardTab.FOCUS),
+                isSearchMode = isSearchMode,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { 
+                    searchQuery = it
+                    viewModel.searchSchedules(it)
+                },
+                onCloseSearch = {
+                    isSearchMode = false
+                    searchQuery = ""
+                    viewModel.loadDashboardData()
+                }
             ) 
         },
         drawerContent = {
@@ -505,55 +517,89 @@ fun HomeContent(
 fun DashboardTopAppBar(
     user: UserDto?,
     onMenuClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isSearchMode: Boolean = false,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    onCloseSearch: () -> Unit = {}
 ) {
     TopAppBar(
         backgroundColor = if (MaterialTheme.colors.isLight) Color.White else Color(0xFF020617),
         elevation = 1.dp,
-        contentPadding = PaddingValues(horizontal = 24.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
         modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Menu, 
-                    contentDescription = "Menu", 
-                    tint = if (enabled) MaterialTheme.colors.onSurface else MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
-                    modifier = Modifier.clickable(enabled = enabled) { onMenuClick() }
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "BFY",
-                    color = Color(0xFF2DD4BF),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-1).sp
+        if (isSearchMode) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onCloseSearch) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colors.onSurface)
+                }
+                TextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    placeholder = { Text("Search tasks...") },
+                    colors = TextFieldDefaults.textFieldColors(
+                        backgroundColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    singleLine = true,
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear", tint = MaterialTheme.colors.onSurface)
+                            }
+                        }
+                    }
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Notifications, 
-                    contentDescription = "Notifications", 
-                    tint = if (enabled) MaterialTheme.colors.onSurface else MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
-                    modifier = Modifier.clickable(enabled = enabled) { onNotificationClick() }
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray)
-                        .border(1.dp, Color(0xFF869490), CircleShape)
-                        .clickable(enabled = enabled) { onProfileClick() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(user?.full_name?.take(1)?.uppercase() ?: "?", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Menu, 
+                        contentDescription = "Menu", 
+                        tint = if (enabled) MaterialTheme.colors.onSurface else MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
+                        modifier = Modifier.clickable(enabled = enabled) { onMenuClick() }
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "BFY",
+                        color = Color(0xFF2DD4BF),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-1).sp
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Search, 
+                        contentDescription = "Search", 
+                        tint = if (enabled) MaterialTheme.colors.onSurface else MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
+                        modifier = Modifier.clickable(enabled = enabled) { onSearchClick() }
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray)
+                            .border(1.dp, Color(0xFF869490), CircleShape)
+                            .clickable(enabled = enabled) { onProfileClick() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(user?.full_name?.take(1)?.uppercase() ?: "?", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

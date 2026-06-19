@@ -497,11 +497,7 @@ export class ScheduleService {
       take: 50,
     });
 
-    return {
-      query,
-      count: schedules.length,
-      schedules,
-    };
+    return schedules;
   }
 
   async cloneSchedule(scheduleId: string, userId: string): Promise<any> {

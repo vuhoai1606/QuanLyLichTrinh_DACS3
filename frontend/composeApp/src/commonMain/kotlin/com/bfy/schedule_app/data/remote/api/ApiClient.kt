@@ -50,7 +50,9 @@ object ApiClient {
             install(Logging) {
                 level = LogLevel.BODY
             }
-            install(WebSockets)
+            install(WebSockets) {
+                pingInterval = 20_000L // 20 seconds keep-alive ping for real devices
+            }
             install(Auth) {
                 bearer {
                     loadTokens {
