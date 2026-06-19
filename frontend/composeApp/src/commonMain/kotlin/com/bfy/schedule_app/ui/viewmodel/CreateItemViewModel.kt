@@ -82,7 +82,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                 val createdSchedule = repository.createSchedule(schedule)
                 
                 if (isCountdown) {
-                    val targetTime = deadline ?: endTime ?: startTime
+                    val targetTime = startTime ?: deadline ?: endTime
                     if (targetTime != null) {
                         try {
                             val targetMillis = kotlinx.datetime.Instant.parse(
@@ -101,7 +101,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                 }
 
                 if (reminders.isNotEmpty() || isAlarm) {
-                    val targetTime = deadline ?: startTime
+                    val targetTime = startTime ?: deadline ?: endTime
                     if (targetTime != null) {
                         try {
                             val targetMillis = kotlinx.datetime.Instant.parse(
@@ -198,7 +198,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                 repository.updateSchedule(id, updates)
 
                 if (isCountdown) {
-                    val targetTime = deadline ?: endTime ?: startTime
+                    val targetTime = startTime ?: deadline ?: endTime
                     if (targetTime != null) {
                         try {
                             val targetMillis = kotlinx.datetime.Instant.parse(
@@ -221,7 +221,7 @@ class CreateItemViewModel(private val repository: AppRepository = AppRepository(
                 // First cancel previous alarms (we can just cancel the main one, or let it get overwritten)
                 // Actually, best to just overwrite with new values.
                 if (reminders.isNotEmpty() || isAlarm) {
-                    val targetTime = deadline ?: startTime
+                    val targetTime = startTime ?: deadline ?: endTime
                     if (targetTime != null) {
                         try {
                             val targetMillis = kotlinx.datetime.Instant.parse(

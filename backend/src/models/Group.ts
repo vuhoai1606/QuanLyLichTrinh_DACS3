@@ -30,7 +30,7 @@ export class Group {
   @JoinColumn({ name: "leader_id" })
   leader: User;
 
-  @OneToMany("Group"Member, (member) => member.group, { cascade: true })
+  @OneToMany(() => GroupMember, (member) => member.group, { cascade: true })
   members: GroupMember[];
 
   @OneToMany("Schedule", (schedule) => schedule.group, { cascade: true })

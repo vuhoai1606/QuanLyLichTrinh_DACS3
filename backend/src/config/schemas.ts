@@ -8,6 +8,8 @@ export const UserSchema = new EntitySchema({
     email: { type: "varchar", unique: true },
     password_hash: { type: "varchar", nullable: true },
     google_id: { type: "varchar", unique: true, nullable: true },
+    google_access_token: { type: "varchar", nullable: true },
+    google_refresh_token: { type: "varchar", nullable: true },
     full_name: { type: "varchar", length: 100 },
     avatar_url: { type: "varchar", nullable: true },
     bio: { type: "varchar", length: 280, nullable: true },

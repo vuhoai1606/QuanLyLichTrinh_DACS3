@@ -349,7 +349,7 @@ export class ScheduleService {
       // Award EXP for completion
       try {
         const GamificationService = (await import("./GamificationService")).default;
-        await GamificationService.updateUserRank(schedule.creator_id, 10);
+        await GamificationService.updateUserStreakAndRank(schedule.creator_id, 10);
       } catch (expError) {
         console.error("Failed to award EXP in updateSchedule:", expError);
       }
@@ -590,7 +590,7 @@ export class ScheduleService {
       // Award EXP for completion
       try {
         const GamificationService = (await import("./GamificationService")).default;
-        await GamificationService.updateUserRank(schedule.creator_id, 10);
+        await GamificationService.updateUserStreakAndRank(schedule.creator_id, 10);
       } catch (expError) {
         console.error("Failed to award EXP:", expError);
       }

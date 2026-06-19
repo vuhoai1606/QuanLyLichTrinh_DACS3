@@ -27,6 +27,12 @@ export const config = {
     version: process.env.API_VERSION || "v1",
     prefix: process.env.API_PREFIX || "/api",
   },
+  
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/calendar/callback",
+  },
 };
 
 export default config;

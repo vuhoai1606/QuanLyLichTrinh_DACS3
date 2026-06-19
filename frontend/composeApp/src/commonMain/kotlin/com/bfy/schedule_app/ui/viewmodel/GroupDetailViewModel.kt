@@ -99,7 +99,7 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
                 )
 
                 if (isCountdown) {
-                    val targetTime = deadline ?: endTime ?: startTime
+                    val targetTime = startTime ?: deadline ?: endTime
                     if (targetTime != null) {
                         try {
                             val targetMillis = kotlinx.datetime.Instant.parse(
@@ -118,7 +118,7 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
                 }
 
                 if (reminders.isNotEmpty() || isAlarm) {
-                    val targetTime = deadline ?: startTime
+                    val targetTime = startTime ?: deadline ?: endTime
                     if (targetTime != null) {
                         try {
                             val targetMillis = kotlinx.datetime.Instant.parse(
@@ -142,7 +142,7 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
                         } catch (e: Exception) { }
                     }
                 } else if (isAlarm) {
-                    val targetTime = deadline ?: startTime
+                    val targetTime = startTime ?: deadline ?: endTime
                     if (targetTime != null) {
                         try {
                             val targetMillis = kotlinx.datetime.Instant.parse(

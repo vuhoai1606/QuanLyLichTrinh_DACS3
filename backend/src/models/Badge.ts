@@ -21,6 +21,6 @@ export class Badge {
   @CreateDateColumn({ type: "timestamp" })
   created_at: Date;
 
-  @OneToMany("User"Badge, (userBadge) => userBadge.badge)
+  @OneToMany(() => UserBadge, (userBadge) => userBadge.badge)
   userBadges: UserBadge[];
 }

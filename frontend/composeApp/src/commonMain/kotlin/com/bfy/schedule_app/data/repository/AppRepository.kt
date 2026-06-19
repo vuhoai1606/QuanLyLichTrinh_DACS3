@@ -55,6 +55,30 @@ class AppRepository {
         return response.success == true
     }
 
+    suspend fun syncGoogleCalendar(): Boolean {
+        val response: ApiResponse<kotlinx.serialization.json.JsonElement> = client.post(ApiClient.getUrl("/calendar/sync")) {
+            ApiClient.authToken?.let {
+                header("Authorization", "Bearer $it")
+            }
+        }.body()
+        if (response.success != true) {
+            throw Exception(response.message ?: "Failed to sync calendar")
+        }
+        return true
+    }
+
+    suspend fun getGoogleAuthUrl(): String {
+        val response: ApiResponse<Map<String, String>> = client.get(ApiClient.getUrl("/calendar/auth")) {
+            ApiClient.authToken?.let {
+                header("Authorization", "Bearer $it")
+            }
+        }.body()
+        if (response.success != true || response.data?.get("url") == null) {
+            throw Exception(response.message ?: "Failed to get auth URL")
+        }
+        return response.data["url"]!!
+    }
+
     suspend fun getSchedules(): List<ScheduleDto> {
         val response: ApiResponse<List<ScheduleDto>> = client.get(ApiClient.getUrl("/schedule")) {
             ApiClient.authToken?.let {

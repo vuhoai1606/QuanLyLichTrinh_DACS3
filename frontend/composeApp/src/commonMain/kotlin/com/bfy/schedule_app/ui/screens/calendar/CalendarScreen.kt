@@ -53,26 +53,45 @@ fun CalendarScreen() {
     val scope = rememberCoroutineScope()
     val platformContext = com.bfy.schedule_app.platform.rememberPlatformContext()
     
-    val syncLauncher = com.bfy.schedule_app.platform.rememberGoogleAuthLauncher { token ->
-        if (token != null) {
-            viewModel.syncGoogleTwoWay(token)
-        } else {
-            viewModel.clearError() // Ensure no error on cancellation
-        }
-    }
+    // val syncLauncher = com.bfy.schedule_app.platform.rememberGoogleAuthLauncher { token ->
+    //     if (token != null) {
+    //         viewModel.triggerBackendSync()
+    //     } else {
+    //         viewModel.clearError() // Ensure no error on cancellation
+    //     }
+    // }
 
     LaunchedEffect(Unit) {
         viewModel.loadSchedules()
     }
 
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+
     if (uiState.error != null) {
+        val isAuthError = uiState.error == "G_CAL_NOT_CONNECTED"
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { viewModel.clearError() },
-            title = { Text("Thông báo", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = { Text(uiState.error!!, color = Color(0xFFBBCAC5)) },
+            title = { Text(if (isAuthError) "Kết nối Google" else "Thông báo", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text(if (isAuthError) "Bạn cần cấp quyền truy cập Google Calendar để đồng bộ." else uiState.error!!, color = Color(0xFFBBCAC5)) },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { viewModel.clearError() }) {
-                    Text("OK", color = PrimaryColor)
+                if (isAuthError && uiState.authUrl != null) {
+                    androidx.compose.material3.TextButton(onClick = { 
+                        uriHandler.openUri(uiState.authUrl!!)
+                        viewModel.clearError()
+                    }) {
+                        Text("Kết nối ngay", color = PrimaryColor)
+                    }
+                } else {
+                    androidx.compose.material3.TextButton(onClick = { viewModel.clearError() }) {
+                        Text("OK", color = PrimaryColor)
+                    }
+                }
+            },
+            dismissButton = {
+                if (isAuthError) {
+                    androidx.compose.material3.TextButton(onClick = { viewModel.clearError() }) {
+                        Text("Hủy", color = TextSecondary)
+                    }
                 }
             },
             containerColor = Color(0xFF1E2023),
@@ -131,7 +150,7 @@ fun CalendarScreen() {
                         androidx.compose.material.icons.Icons.Default.Refresh,
                         contentDescription = "Sync",
                         tint = PrimaryColor,
-                        modifier = Modifier.clickable { syncLauncher() }.padding(end = 12.dp)
+                        modifier = Modifier.clickable { viewModel.triggerBackendSync() }.padding(end = 12.dp)
                     )
                     Text(
                         text = Localization.get("today") ?: "Today",

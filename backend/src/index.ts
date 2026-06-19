@@ -20,6 +20,7 @@ import { monitoringRoutes } from "@routes/monitoring";
 import { chatRoutes } from "@routes/chat";
 import { analyticsRoutes } from "@routes/analytics";
 import { aiRoutes } from "@routes/ai";
+import { calendarRoutes } from "@routes/calendar";
 import { logger } from "@utils/logger";
 import { validateEnvironment, printStartupConfig } from "@utils/env-validator";
 import { APP_CONSTANTS } from "@constants/app.constants";
@@ -96,6 +97,7 @@ const app = new Elysia({ bodyLimit: 50 * 1024 * 1024 })
       .use(chatRoutes)
       .use(analyticsRoutes)
       .use(aiRoutes)
+      .use(calendarRoutes)
   )
   .ws("/ws", {
     open(ws) {

@@ -13,6 +13,8 @@ export const UserSchema = new EntitySchema({
     rank: { type: "varchar", default: "Rookie" },
     created_at: { type: "timestamp", createDate: true },
     updated_at: { type: "timestamp", updateDate: true },
+    google_access_token: { type: "varchar", nullable: true },
+    google_refresh_token: { type: "varchar", nullable: true },
   },
   relations: {
     settings: {

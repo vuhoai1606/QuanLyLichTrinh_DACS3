@@ -66,19 +66,25 @@ export class User {
   @UpdateDateColumn({ type: "timestamp" })
   updated_at: Date;
 
-  @OneToOne("User"Settings, (settings) => settings.user, { cascade: true })
+  @Column({ type: "varchar", nullable: true })
+  google_access_token: string;
+
+  @Column({ type: "varchar", nullable: true })
+  google_refresh_token: string;
+
+  @OneToOne(() => UserSettings, (settings) => settings.user, { cascade: true })
   settings: UserSettings;
 
   @OneToMany(() => Category, (category) => category.user, { cascade: true })
   categories: Category[];
 
-  @OneToMany("Schedule", (schedule) => schedule.creator, { cascade: true })
+  @OneToMany(() => Schedule, (schedule) => schedule.creator, { cascade: true })
   schedules: Schedule[];
 
-  @OneToMany("Group", (group) => group.leader, { cascade: true })
+  @OneToMany(() => Group, (group) => group.leader, { cascade: true })
   groups: Group[];
 
-  @OneToMany("Group"Member, (member) => member.user, { cascade: true })
+  @OneToMany(() => GroupMember, (member) => member.user, { cascade: true })
   groupMembers: GroupMember[];
 
   @OneToMany(() => FocusSession, (session) => session.user, { cascade: true })
@@ -87,7 +93,7 @@ export class User {
   @OneToMany(() => Notification, (notification) => notification.user, { cascade: true })
   notifications: Notification[];
 
-  @OneToMany("User"Badge, (userBadge) => userBadge.user, { cascade: true })
+  @OneToMany(() => UserBadge, (userBadge) => userBadge.user, { cascade: true })
   badges: UserBadge[];
 
   @OneToMany(() => FCMToken, (token) => token.user, { cascade: true })

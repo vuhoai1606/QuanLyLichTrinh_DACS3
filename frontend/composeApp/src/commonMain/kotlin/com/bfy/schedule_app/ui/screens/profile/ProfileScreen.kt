@@ -369,7 +369,7 @@ fun ProfileScreen(userId: String, onLogout: () -> Unit = {}) {
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (uiState.badges.isEmpty()) {
-                        Text(Localization.get("no_notifications") ?: "No badges yet", color = Color.Gray, fontSize = 12.sp)
+                        Text(Localization.get("no_badges") ?: "No badges yet", color = Color.Gray, fontSize = 12.sp)
                     } else {
                         uiState.badges.take(4).forEach { badge ->
                             BadgeItem(
