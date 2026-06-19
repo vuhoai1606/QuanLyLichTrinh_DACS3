@@ -24,7 +24,20 @@ class GroupDetailViewModel(private val repository: AppRepository = AppRepository
     private val _uiState = MutableStateFlow(GroupDetailUiState())
     val uiState: StateFlow<GroupDetailUiState> = _uiState
 
+    private var currentGroupId: String? = null
+
+    init {
+        viewModelScope.launch {
+            com.bfy.schedule_app.data.remote.api.WebSocketManager.events.collect { event ->
+                if (event.type == "GROUP_TASKS_UPDATED" && event.groupId == currentGroupId) {
+                    currentGroupId?.let { loadTasks(it) }
+                }
+            }
+        }
+    }
+
     fun loadTasks(groupId: String) {
+        currentGroupId = groupId
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {

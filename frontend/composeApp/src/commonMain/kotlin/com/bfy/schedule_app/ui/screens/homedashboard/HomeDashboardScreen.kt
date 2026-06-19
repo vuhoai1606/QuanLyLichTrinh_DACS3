@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.datetime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -859,6 +860,14 @@ fun TimelineCard(
 ) {
     val scope = rememberCoroutineScope()
     var showConfirmDoneDialog by remember { mutableStateOf(false) }
+    var currentTime by remember { mutableStateOf(kotlinx.datetime.Clock.System.now()) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            kotlinx.coroutines.delay(60_000)
+            currentTime = kotlinx.datetime.Clock.System.now()
+        }
+    }
 
     if (showConfirmDoneDialog) {
         androidx.compose.material.AlertDialog(
@@ -936,7 +945,7 @@ fun TimelineCard(
         }
     } else {
         val isDone = schedule.status == "DONE"
-        val isOverdue = ScheduleUtils.isOverdue(schedule)
+        val isOverdue = ScheduleUtils.isOverdue(schedule, currentTime)
 
         val accentColor = when {
             isDone -> Color(0xFF59DBC7)

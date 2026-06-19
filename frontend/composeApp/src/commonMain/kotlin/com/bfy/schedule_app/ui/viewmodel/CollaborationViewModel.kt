@@ -22,6 +22,14 @@ class CollaborationViewModel(private val repository: AppRepository = AppReposito
 
     init {
         loadGroups()
+        
+        viewModelScope.launch {
+            com.bfy.schedule_app.data.remote.api.WebSocketManager.events.collect { event ->
+                if (event.type == "GROUP_TASKS_UPDATED" || event.type == "USER_TASKS_UPDATED") {
+                    loadGroups()
+                }
+            }
+        }
     }
 
     fun loadGroups() {

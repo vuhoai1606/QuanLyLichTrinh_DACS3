@@ -93,9 +93,11 @@ object ApiClient {
         authToken = token
         refreshToken = refresh
         client = createHttpClient()
+        WebSocketManager.connect()
     }
 
     fun clearTokens() {
+        WebSocketManager.disconnect()
         authToken = null
         refreshToken = null
         client = createHttpClient()

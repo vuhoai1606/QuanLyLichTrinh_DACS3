@@ -131,6 +131,15 @@ export class ScheduleService {
         })
       );
       await assignmentRepository.save(assignmentEntities);
+
+      try {
+        const webSocketService = require("@services/WebSocketService").default;
+        webSocketService.broadcastToGroup(assignees, {
+          type: "USER_TASKS_UPDATED"
+        });
+      } catch (err) {
+        console.error("Failed to broadcast WebSocket user update:", err);
+      }
     }
 
     // Notify group members if it's an ANNOUNCEMENT in a group
@@ -163,6 +172,10 @@ export class ScheduleService {
       } catch (err) {
         console.error("Failed to send group announcement notifications:", err);
       }
+    }
+
+    if (data.group_id) {
+      await this.notifyGroupTaskUpdate(data.group_id);
     }
 
     return this.getScheduleById(savedSchedule.id);
@@ -379,6 +392,11 @@ export class ScheduleService {
     }
 
     await scheduleRepository.save(schedule);
+    
+    if (schedule.group_id) {
+      await this.notifyGroupTaskUpdate(schedule.group_id);
+    }
+    
     return this.getScheduleById(scheduleId);
   }
 
@@ -394,7 +412,12 @@ export class ScheduleService {
       throw new AppError(403, "Unauthorized to delete this schedule", "UNAUTHORIZED");
     }
 
+    const groupId = schedule.group_id;
     await scheduleRepository.remove(schedule);
+    
+    if (groupId) {
+      await this.notifyGroupTaskUpdate(groupId);
+    }
   }
 
   async createRecurringSchedule(data: any): Promise<any> {
@@ -641,6 +664,22 @@ export class ScheduleService {
       total: goal,
       percent: Math.min(100, Math.round((completedThisWeek / goal) * 100)),
     };
+  }
+
+  private async notifyGroupTaskUpdate(groupId: string) {
+    try {
+      const groupMemberRepository = AppDataSource.getRepository("GroupMember");
+      const members = await groupMemberRepository.find({ where: { group_id: groupId } });
+      const memberIds = members.map(m => m.user_id);
+      
+      const webSocketService = require("@services/WebSocketService").default;
+      webSocketService.broadcastToGroup(memberIds, {
+        type: "GROUP_TASKS_UPDATED",
+        groupId: groupId
+      });
+    } catch (err) {
+      console.error("Failed to broadcast WebSocket group update:", err);
+    }
   }
 }
 

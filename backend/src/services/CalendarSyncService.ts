@@ -3,6 +3,7 @@ import { AppDataSource } from "@config/database";
 import { Schedule } from "@models/Schedule";
 import { User } from "@models/User";
 import { generateUUID } from "@utils/validation";
+import { IsNull } from "typeorm";
 import { google } from "googleapis";
 import { config } from "@config/env";
 import { AppError } from "@utils/errors";
@@ -106,7 +107,7 @@ export class CalendarSyncService {
       const localSchedulesToPush = await scheduleRepo.find({
         where: {
           creator_id: userId,
-          external_id: null // Assume only null needs pushing initially, or use a "needs_sync" flag
+          external_id: IsNull() // Assume only null needs pushing initially, or use a "needs_sync" flag
         }
       });
 
