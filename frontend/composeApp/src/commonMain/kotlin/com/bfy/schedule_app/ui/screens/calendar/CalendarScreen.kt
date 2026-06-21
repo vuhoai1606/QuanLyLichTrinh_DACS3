@@ -34,7 +34,7 @@ import com.bfy.schedule_app.ui.viewmodel.CalendarViewModel
 
 enum class CalendarViewType(val key: String) { 
     DAY("day"), 
-    WEEK("week"), 
+    .WEEK("week"),
     MONTH("month"), 
     YEAR("year") 
 }
